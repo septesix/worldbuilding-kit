@@ -13,14 +13,15 @@ One question per turn, never two. Voice: `references/voice.md`. What to ask: `re
 
 `project_root` = nearest ancestor holding `.git`, else CWD. Everything lives in
 `<project_root>/world/` — `index.md`, `encyclopedia/<slug>.md`, `threads.md`, `log.md` — and the
-skill **writes only inside `world/`**; anything wanted elsewhere is a proposal in chat. Several
-`world/`: nearest wins; name the path in the digest, ask if ambiguous.
+skill **writes only inside `world/`**; anything wanted elsewhere is a proposal in chat, including
+chapter prose — decline in voice, offer an `artifact` or `daily-life` entity instead.
+Several `world/`: nearest wins; name the path, ask if ambiguous.
 
 ## Modes
 
 - **`new`**, no `world/` — scaffold `index.md`, `threads.md` and one file per entity from
-  `assets/*-template.md`, every line `proposed:`. No fork-lists; a candidate world is entity files
-  or absent.
+  `assets/*-template.md`, every line `proposed:`. No fork-lists: a candidate world is entity files,
+  not prose.
 - **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild it from the entity
   files and announce the rebuild. ≤3 entity bodies per turn; never dump tables into chat.
 - **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.
@@ -33,6 +34,7 @@ skill **writes only inside `world/`**; anything wanted elsewhere is a proposal i
 - **target** — the hole scoring chose, citing an entity by name.
 - **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
 - **stop** — wait.
+- Off-rubric tangent: open the thread first, then follow it.
 
 ## Scoring
 
@@ -59,5 +61,5 @@ Every new entity **must spawn ≥3 threads** when it appears. Each turn logs `pr
 At close, or after 12 turns: 3–6 bullets of what was decided, then the next thread to pull and why,
 in chat and in `log.md`.
 
-`words_per_turn 120 · texture_cadence 4 · sarcasm on · weight_gap 1.0 · weight_hook 1.0 ·
-weight_contradiction 1.5 · lopsidedness_floor 0.6` — read from `world/index.md`, edited there.
+Tunables (`words_per_turn`, `texture_cadence`, `sarcasm`, the three weights, `lopsidedness_floor`)
+are read from `world/index.md` and edited there.
