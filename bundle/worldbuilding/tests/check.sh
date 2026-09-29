@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Mechanically checkable assertions for the worldbuilding skill. Dev fixture only.
-# usage: bash tests/check.sh <harness|templates|rubric|voice|method|kit|all>
+# usage: bash tests/check.sh <harness|templates|rubric|voice|method|kit|selftest|all>
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../../.." && pwd)"
 B="$REPO/bundle/worldbuilding"; PASS=0; FAIL=0
 ok(){ printf '  ok   %s\n' "$1"; PASS=$((PASS+1)); }
 no(){ printf '  FAIL %s\n' "$1"; FAIL=$((FAIL+1)); }
-ck(){ if [ "$2" = 1 ]; then ok "$3"; else no "$3 ($2)"; fi; }
+# ck <actual> <expected> <label> - exact equality, for counts that ARE the invariant
+ck(){ if [ "$1" = "$2" ]; then ok "$3"; else no "$3 (got $1, want $2)"; fi; }
+# has <label> <file> <ERE> - presence, for rules that only need to appear somewhere
+has(){ if grep -qE "$3" "$2" 2>/dev/null; then ok "$1"; else no "$1"; fi; }
 newest(){ ls -1t "$REPO"/evidence/"$1"-*.md 2>/dev/null | head -1; }
 
 harness(){
@@ -30,9 +33,9 @@ templates(){
   pil "$T/index-template.md" > /tmp/p.t
   pil "$B/tests/fixtures/established/world/index.md" > /tmp/p.f
   diff -q /tmp/p.t /tmp/p.f >/dev/null && ok "fixture pillar rows == template rows (18)" || no "pillar vocabularies drift: $(comm -3 /tmp/p.t /tmp/p.f | tr '\n' ' ')"
-  ck "$(grep -c '^## Pillar coverage' "$T/index-template.md")" 1 "index template has Pillar coverage section"
-  ck "$(grep -c '^## Hottest threads' "$T/index-template.md")" 1 "index template has Hottest threads"
-  ck "$(grep -c 'words_per_turn' "$T/index-template.md")" 1 "index template carries tunables"
+  has "index template has Pillar coverage section" "$T/index-template.md" '^## Pillar coverage'
+  has "index template has Hottest threads" "$T/index-template.md" '^## Hottest threads'
+  has "index template carries tunables" "$T/index-template.md" 'words_per_turn'
   local ln; ln=$(awk '/^## Entities/{print NR; exit}' "$T/index-template.md"); [ "$ln" -lt 60 ] && ok "entity table at line $ln (<60)" || no "entity table at line $ln, not <60"
   grep -q '^## Canon' "$T/entity-template.md" && ok "entity template has Canon" || no "entity template lacks ## Canon"
   grep -q 'proposed:' "$T/entity-template.md" && ok "entity template shows provenance" || no "no proposed: provenance"
@@ -47,8 +50,8 @@ templates(){
 rubric(){
   local R="$B/references/rubric.md"; [ -f "$R" ] && ok "rubric exists" || { no "rubric missing"; return; }
   local n; n=$(grep -cE '^\| *[a-z-]+ *\|' "$R"); ck "$n" 18 "rubric lists all 18 pillars ($n)"
-  ck "$(grep -c 'must spawn' "$R")" 1 "child-spawn rule present"
-  ck "$(grep -ciE 'anti-glass' "$R")" 1 "anti-glass test present"
+  has "child-spawn rule present" "$R" 'must spawn'
+  has "anti-glass test present" "$R" '[Aa]nti-glass'
 }
 voice(){
   local V="$B/references/voice.md"; [ -f "$V" ] || { no "voice.md missing"; return; }
@@ -60,7 +63,7 @@ method(){
   local S="$B/SKILL.md"; [ -f "$S" ] || { no "bundle SKILL.md missing"; return; }
   local w; w=$(wc -w < "$S"); [ "$w" -lt 500 ] && ok "bundle SKILL.md $w words (<500)" || no "bundle SKILL.md $w words"
   grep -qi 'empty' "$S" && grep -qi 'gap_weight' "$S" && ok "gap_weight polarity documented" || no "gap_weight polarity missing"
-  ck "$(grep -c 'world/' "$S")" 1 "write boundary names world/"
+  has "write boundary names world/" "$S" 'world/'
   for k in contradiction rebuild proposed 3; do grep -qi "$k" "$S" && ok "Review Focus rule: $k" || no "Review Focus rule missing: $k"; done
 }
 kit(){
@@ -71,9 +74,27 @@ kit(){
   grep -q 'worldbuilding' "$K" && ok "kit names the bundle" || no "kit does not name the bundle"
 }
 
+selftest_bad=0
+selftest(){
+  # the ck helper must actually assert; it previously compared its own expected
+  # argument to 1, which made every count assertion vacuous or unsatisfiable
+  local p f; p=$PASS; f=$FAIL
+  PASS=0; FAIL=0; ck 0 1 probe >/dev/null; [ "$FAIL" = 1 ] || selftest_bad=1
+  PASS=0; FAIL=0; ck 1 1 probe >/dev/null; [ "$PASS" = 1 ] || selftest_bad=1
+  PASS=0; FAIL=0; ck 18 18 probe >/dev/null; [ "$PASS" = 1 ] || selftest_bad=1
+  PASS=$p; FAIL=$f
+  [ "$selftest_bad" = 1 ] && no "selftest: ck does not assert (it passed or failed the wrong comparison)" || ok "selftest: ck asserts correctly (0 vs 1 fails; 1 vs 1 and 18 vs 18 pass)"
+}
+
 case "${1:-all}" in
   harness) harness;; templates) templates;; rubric) rubric;; voice) voice;;
-  method) method;; kit) kit;;
-  all) for f in harness templates rubric voice method kit; do echo "[$f]"; $f; done;;
+  method) method;; kit) kit;; selftest) selftest;;
+  all)
+    echo "[selftest]"; selftest
+    if [ "$selftest_bad" = 1 ]; then
+      echo "check.sh: SELFTEST FAILED - the assertion helper is broken; refusing to run the gate"
+      echo "check.sh: $PASS passed, $FAIL failed"; exit 2
+    fi
+    for f in harness templates rubric voice method kit; do echo "[$f]"; $f; done;;
 esac
 echo "check.sh: $PASS passed, $FAIL failed"; [ "$FAIL" = 0 ]
