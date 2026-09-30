@@ -88,16 +88,25 @@ selftest_bad=0
 behavior(){
   # opt-in only: needs run artifacts. Deliberately NOT in the all loop, so "all green" can never
   # mean "the budget held" - it is checked by name: bash tests/check.sh behavior
-  local e n=0
-  for e in $(ls -1t "$REPO"/evidence/*-skill-*.md 2>/dev/null); do n=$((n+1)); done
-  [ "$n" = 0 ] && { echo "  skip  behavior: no skill runs recorded yet"; return; }
-  local lim; lim=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$B/assets/index-template.md")
-  local rc=0
-  python3 "$B/tests/wordcount.py" $(ls -1t "$REPO"/evidence/*-skill-*.md | head -8) "${lim:-160}" || rc=$?
+  local head all sel tot nsel lim rc
+  head=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)
+  all=$(ls -1t "$REPO"/evidence/*-skill-*.md 2>/dev/null)
+  [ -z "$all" ] && { echo "  skip  behavior: no skill runs recorded yet"; return; }
+  # only transcripts labelled with this build count as evidence about it
+  sel=$(grep -l "commit=$head" $all 2>/dev/null | head -8)
+  tot=$(echo "$all" | grep -c .); nsel=$(printf '%s\n' "$sel" | grep -c '[^[:space:]]')
+  if [ "$nsel" = 0 ]; then
+    echo "  skip  behavior: none of the $tot skill transcripts were produced by $head - re-run the scenarios to grade this build"
+    return
+  fi
+  [ "$nsel" != "$tot" ] && echo "  note  behavior: grading $nsel of $tot transcripts ($((tot-nsel)) belong to other builds; their 'label:' line says which)"
+  lim=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$B/assets/index-template.md")
+  rc=0
+  python3 "$B/tests/wordcount.py" $sel "${lim:-160}" || rc=$?
   case $rc in
     0) ok "recorded skill turns within ${lim} turn words and their appendix limits";;
     1) no "a recorded turn exceeds the ${lim}-word TURN cap";;
-    2) no "turn words are within ${lim}; an APPENDIX limit is breached (options ≤18 words, recap ≤6 bullets)";;
+    2) no "turn words within ${lim}; an APPENDIX limit is breached (options over 18 words, or recap over 6 bullets)";;
     3) no "both the turn cap and an appendix limit are breached";;
     *) no "wordcount.py could not run (rc=$rc)";;
   esac
