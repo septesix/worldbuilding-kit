@@ -20,8 +20,8 @@ nearest wins; name the path.
 
 ## Modes
 
-- **`new`**, no `world/` — scaffold `index.md`, `threads.md`, one file per entity from
-  `assets/*-template.md`, all `proposed:`. Entity files, not prose fork-lists.
+- **`new`**, no `world/` — one premise question; then scaffold `index.md`, `threads.md`, 5–8
+  entity files from `assets/*-template.md`, all `proposed:`, not fork-lists.
 - **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild from the files and
   announce it. ≤ `reads_per_turn` bodies, else you are scoring from files.
 - **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.

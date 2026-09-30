@@ -444,3 +444,15 @@ disclosed score's gap term against the dumped table and flags a score with no te
 arithmetic is now part of the gate instead of part of the argument. Cost if wrong: the audit is only as
 good as the index table it reads; a stale table produces a false contradiction, which the index rebuild
 rule already treats as a first-class failure to announce rather than silently score against.
+
+**R-13 (2026-09-30, gate finding I4)** — `new` mode's seed is specified and checked. §2 said "seed
+5–8 entities"; the guidance said "one file per entity" with no count, and the harness had no `new`-mode
+scenario, so the whole mode was untested. The band is now in SKILL.md (499 words) with its shape in
+`references/rubric.md`: 5–8 entity files, all canon lines `proposed:`, spread over ≥3 pillars including
+≥1 texture pillar, ≥3 threads per entity. The texture requirement is not a new preference - it is R-8
+applied at turn one, where the cadence window is empty by construction. Validated by `tests/seedcheck.py`
+(count / spread+texture / premature canon / thread floor) and graded by `check.sh behavior` with
+"untested" named separately from "passed". Cost if wrong: a seeded world touches all 18 pillars, which
+looks like coverage but is not - every line is `proposed:`, and §4.1 scores that as empty, so the holes
+the interview aims at are intact. The band is also the anti-volume guard: 9 entities is a fail, not a
+bonus.

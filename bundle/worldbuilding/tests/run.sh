@@ -11,7 +11,7 @@ trap 'rm -rf "$WORK" "$FAKEHOME"' EXIT
 case "$SCEN" in
   established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup)
     cp -R "$HERE/fixtures/established/." "$WORK/" ;;
-  continue-empty) : ;;                       # empty project dir
+  continue-empty|new-world) : ;;             # empty project dir (new-world: nothing to read yet)
   home-dir) : ;;                             # non-project dir == the refuse-to-scaffold predicate
 esac
 [ "$SCEN" = stale-index ] && rm -f "$WORK/world/index.md"
@@ -58,6 +58,16 @@ LABEL="commit=${COMMIT} guidance=${BHASH} spec_rev=${SPECREV:-R-0} ${LIMITS}"
     python3 "$HERE/canoncheck.py" --dir "$WORK" --fixture "$ORIG" --transcript "$OUT"
   else
     python3 "$HERE/canoncheck.py" --dir "$WORK" --transcript "$OUT"
+  fi
+  # I4: a `new` run must leave a seeded world, not a chat message describing one
+  if [ "$SCEN" = new-world ]; then
+    if [ -d "$WORK/world" ]; then
+      python3 "$HERE/seedcheck.py" "$WORK/world"; SR=$?
+      [ "$SR" = 128 ] && echo "INFRA-FAIL: seedcheck crashed"
+      [ $((SR & 15)) != 0 ] && echo "SEED-FAIL: rc=$SR (1 count, 2 spread/texture, 4 premature canon, 8 threads)"
+    else
+      echo "SEED-FAIL: no world/ was scaffolded - the run stayed in conversation"
+    fi
   fi
   echo "## world/ contents"; ( cd "$WORK" && for f in $(find . -path "*world*" -name "*.md" -type f | sort); do echo "--- $f"; head -c 2500 "$f"; echo; done )
 } > "$OUT" 2>&1

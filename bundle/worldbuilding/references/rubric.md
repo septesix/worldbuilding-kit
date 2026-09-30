@@ -103,6 +103,24 @@ Worked example — `severins-child-place`, named by the writer mid-turn:
 - **Candidates** are existing entities and the nine child generators below - not new inventions on the
   spot, which is how a world acquires a fourteenth bridge.
 
+## Seeding a new world (I4)
+
+`SKILL.md` gives the number; the shape is here. After the premise paragraph, before any second
+question:
+
+- **5-8 entity files**, each from `assets/entity-template.md` with `pillars:` filled in. Not a
+  fork-list of options in chat: the writer is answering questions, not reading a menu.
+- **Spread over at least 3 pillars, including one texture pillar** (`daily-life` or
+  `voice-attention`). This is R-8's cadence rule applied at turn one: with no `targeted:` lines yet,
+  the window is empty, so texture is owed immediately. A seed of nine bridges and no kitchens fails
+  cadence on the first turn and then spends the session chasing it.
+- **Every canon line `proposed:`** - a seeded world is a hypothesis, not canon. `established:` appears
+  only when the writer confirms it.
+- **At least 3 threads per seeded entity** (the standing rule), so 15-24 threads exist to rotate
+  over. Under-provisioned threads are what make a session hammer one pillar for twelve turns.
+- 6 is the target: 5-8 is the pass band, and the difference between 5 and 8 is which premise the
+  writer emphasises, not how much you wanted to write.
+
 ## Scoring honesty (F5/I7)
 
 - **`gap_weight` is a lookup, not an impression.** Read the pillar row in `world/index.md`'s coverage

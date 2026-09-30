@@ -46,6 +46,18 @@ templates(){
   has "score disclosure named in SKILL (I7)" "$B/SKILL.md" 'Show all three terms'
   has "scoring honesty documented in the rubric (I7)" "$B/references/rubric.md" 'Scoring honesty'
   has "gap_weight stated as a table lookup (I7)" "$B/references/rubric.md" 'coverage'
+  # ERE: '|' alternates, '\|' is a literal bar. An earlier guard used the escaped form and failed a
+  # rule that was present - the same class of false alarm as a grep pattern starting with '-'
+  # the number and the noun sit on opposite sides of a line wrap in SKILL.md, so one grep cannot see
+  # both - asserting the pair separately keeps the guard honest instead of lucky
+  has "seed band named in SKILL (I4)" "$B/SKILL.md" '5[–-]8'
+  has "seed band applies to entity files (I4)" "$B/SKILL.md" 'entity files from'
+  has "seeding shape documented in the rubric (I4)" "$B/references/rubric.md" 'Seeding a new world'
+  has "seed texture rule stated (I4/R-8)" "$B/references/rubric.md" 'texture pillar'
+  has "seed thread floor stated (I4)" "$B/references/rubric.md" '3 threads per seeded entity'
+  has "a new-world scenario exists" "$B/tests/prompts/new-world.txt" 'canal city'
+  has "the new-world scenario is wired into the harness" "$B/tests/run.sh" 'new-world'
+  has "seedcheck wired into the single-turn harness" "$B/tests/run.sh" 'seedcheck'
   has "canoncheck wired into the single-turn harness" "$B/tests/run.sh" 'canoncheck'
   has "canoncheck wired into the multi-turn harness" "$B/tests/multiturn.sh" 'canoncheck'
   # a rule may live in SKILL or in references - what is not allowed is living in neither. SKILL alone
@@ -187,6 +199,13 @@ behavior(){
     return
   fi
   [ "$nsel" != "$tot" ] && echo "  note  behavior: grading $nsel of $tot transcripts ($((tot-nsel)) belong to other builds; their 'label:' line says which)"
+  # I4: a new-world run that never seeded must not read as a pass just because its words were fine.
+  # Three states are named separately: untested, tested-and-failed, tested-and-good.
+  local nw sbad; nw=$(printf '%s\n' $sel | grep -c 'new-world-skill')
+  sbad=$(grep -l 'SEED-FAIL' $sel 2>/dev/null | wc -l)
+  if [ "${nw:-0}" = 0 ]; then echo "  note  behavior: no new-world run under this guidance key - I4 untested by these artifacts"
+  elif [ "${sbad:-0}" != 0 ]; then no "$sbad of $nw new-world run(s) failed the seed band (see SEED-FAIL in the evidence)"
+  else ok "the recorded new-world run seeded inside the band (5-8 entities, spread, texture, threads)"; fi
   lim=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$B/assets/index-template.md")
   rc=0
   python3 "$B/tests/wordcount.py" $sel "${lim:-160}" || rc=$?
@@ -560,6 +579,51 @@ L
   { [ $((rc & 2)) = 2 ] && grep -q 'gap_weight 3 contradicts index' "$TMP/s4.out"; } \
     && ok "selftest: an undisciplined 'gap 3' is still checked against the table" \
     || no "selftest: value-only disclosure escapes the audit (rc=$rc) - I7's real form is unguarded"
+
+  # I4: the seed validator must bite in both directions, on synthetic worlds it builds itself
+  seed_mk(){ python3 - "$1" "$2" "$3" "$4" <<'L'
+import sys, os, shutil, glob
+d, n, mode, threads = sys.argv[1], int(sys.argv[2]), sys.argv[3], int(sys.argv[4])
+shutil.rmtree(d, ignore_errors=True); os.makedirs(d + '/encyclopedia')
+P = ['geography-routes', 'power-systems', 'faith-myth', 'ecology-resources', 'daily-life', 'history-periodisation']
+for i in range(n):
+    pl = ['geography-routes'] if mode == 'onepillar' else [P[i % len(P)]]
+    head = '' if mode == 'notags' else 'pillars: [%s]' % ', '.join(pl)
+    lines = ['# entity %d' % i, '', '---', 'kind: place ' + head, '---', '',
+             '- proposed: a claim the writer has not confirmed']
+    if mode == 'canon': lines.append('- established: canon a seed may not declare')
+    open('%s/encyclopedia/entity-%02d.md' % (d, i), 'w').write('\n'.join(lines) + '\n')
+rows = '\n'.join('| T-%03d | q | seed | x |' % k for k in range(threads))
+open(d + '/threads.md', 'w').write('# Threads\n\n| id | q | from | p |\n|---|---|---|---|\n' + rows + '\n')
+open(d + '/index.md', 'w').write('# idx\n')
+L
+}
+  seed_run(){ python3 "$B/tests/seedcheck.py" "$1" >"$TMP/seed.out" 2>&1; echo $?; }
+  seed_mk "$TMP/sg" 6 ok 18; r=$(seed_run "$TMP/sg")
+  crash $r && [ "$r" = 0 ] && ok "selftest: a 6-entity seed with spread and threads passes (known good)" \
+    || no "selftest: a correct seed fails (rc=$r) - the band is wrong or the parser is broken"
+  seed_mk "$TMP/s3" 3 ok 9;  r=$(seed_run "$TMP/s3");  crash $r && [ $((r & 1)) = 1 ] \
+    && ok "selftest: a 3-entity seed is under-band" || no "selftest: an under-seeded world passed (rc=$r)"
+  seed_mk "$TMP/s9" 9 ok 27; r=$(seed_run "$TMP/s9"); crash $r && [ $((r & 1)) = 1 ] \
+    && ok "selftest: a 9-entity seed is over-band - volume is not rigour" \
+    || no "selftest: an over-seeded world passed (rc=$r)"
+  seed_mk "$TMP/sp" 6 onepillar 18; r=$(seed_run "$TMP/sp")
+  crash $r && [ $((r & 2)) = 2 ] && ok "selftest: nine bridges and no kitchens is caught (texture absent)" \
+    || no "selftest: a seed with no texture pillar passed (rc=$r) - R-8 does not reach turn one"
+  seed_mk "$TMP/sc" 6 canon 18; r=$(seed_run "$TMP/sc")
+  crash $r && [ $((r & 4)) = 4 ] && ok "selftest: a seed that declares established canon is caught" \
+    || no "selftest: premature canon passed (rc=$r)"
+  seed_mk "$TMP/st" 6 ok 6; r=$(seed_run "$TMP/st")
+  crash $r && [ $((r & 8)) = 8 ] && ok "selftest: 6 entities with 6 threads is under-provisioned" \
+    || no "selftest: a thread-starved seed passed (rc=$r) - rotation will starve later"
+  seed_mk "$TMP/sn" 6 notags 18; r=$(seed_run "$TMP/sn")
+  crash $r && [ $((r & 2)) = 2 ] && ok "selftest: an entity file with no pillars: line cannot hide" \
+    || no "selftest: untagged entities passed the spread check (rc=$r)"
+  r=$(seed_run "$TMP/does-not-exist"); crash $r && [ $((r & 1)) = 1 ] \
+    && ok "selftest: an empty world is under-band, not a crash" || no "selftest: no-world case mishandled (rc=$r)"
+  python3 "$B/tests/seedcheck.py" 2>/dev/null; r=$?
+  [ "$r" != 0 ] && ok "selftest: seedcheck refuses to report success with no arguments (rc=$r)" \
+    || no "selftest: seedcheck exits 0 with no world dir - a gate that passes on nothing"
 
   # regression witness, on evidence rather than synthetic input: two runs the old fixture-only check
   # certified as canon-clean did `rm encyclopedia/lighthouse-place.md` mid-session. If the detector ever
