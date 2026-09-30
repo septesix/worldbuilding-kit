@@ -32,10 +32,13 @@ CLEAN=(env -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u
 
 EMPTY=""
 guidance_key(){
-  # hash ONLY what the model reads - SKILL.md, references/, assets/. An earlier version hashed all of
-  # bundle/, so a test-only edit "invalidated" behavioural evidence about guidance that had not moved.
-  git -C "$REPO" rev-parse HEAD:bundle/worldbuilding/SKILL.md HEAD:bundle/worldbuilding/references \
-    HEAD:bundle/worldbuilding/assets 2>/dev/null | tr -d '\n' | cksum | awk '{printf "%08x", $1}'
+  # Hash the WORKING TREE contents of what the model reads - not git's committed copy. Evidence
+  # produced against uncommitted guidance used to carry the pre-edit key, which made "graded against
+  # the current build" false on every dirty step (that is: all of them). Locates the bundle from this
+  # script's own path, so it must not depend on $B / $BUNDLE being defined by the caller.
+  local d; d=$(cd "$(dirname "$0")/.." && pwd)
+  { cat "$d/SKILL.md" 2>/dev/null; cat "$d"/references/*.md 2>/dev/null; cat "$d"/assets/*.md 2>/dev/null; } \
+    | cksum | awk '{printf "%08x", $1}'
 }
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-multi-$STAMP.md"; mkdir -p "$REPO/evidence"
 COMMIT="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"

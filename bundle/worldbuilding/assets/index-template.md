@@ -53,3 +53,12 @@ bullets in those files, excluding any carrying `supersedes`; `proposed` = `- pro
 
 ## Hottest threads
 - T-001 <the open question with the best score>
+
+## Log line shape (per turn, appended)
+
+- decided: <what the writer settled>
+- provoked: <connection|constraint|cost|consequence|discovery|contradiction|stake|review> · targeted: <pillar>
+
+`targeted:` is not decoration. The rule "never the same pillar in consecutive turns when another
+candidate reaches `lopsidedness_floor`" cannot be evaluated without it, and by turn five the previous
+turn's target is no longer in the transcript. Write it every turn.

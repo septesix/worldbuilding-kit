@@ -96,12 +96,12 @@ multi(){
   [ -z "$sel" ] && { echo "  skip  multi: no multi-turn evidence from guidance key $bh"; return; }
   local rc=0 f
   for f in $sel; do
-    grep -q '^CANON-LOSS' "$f" && { echo "   canon files deleted during $(basename "$f") - append-only breached (world/ files may be added, never removed)"; rc=$((rc | 128)); }
-    grep -q 'INFRA-FAIL: no assistant text' "$f" && { echo "   an eaten turn in $(basename "$f") - instrument failure, not scored as a finding"; rc=$((rc | 256)); }
+    grep -q '^CANON-LOSS' "$f" && { echo "   canon files deleted during $(basename "$f") - append-only breached (world/ files may be added, never removed)"; rc=$((rc | 1)); }
+    grep -q 'INFRA-FAIL: no assistant text' "$f" && { echo "   an eaten turn in $(basename "$f") - instrument failure, not scored as a finding"; rc=$((rc | 2)); }
     python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?))
   done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
-    || no "multi-turn invariant breached (codes: $rc - 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation, 128 canon loss, 256 eaten turn)"
+    || no "multi-turn invariant breached (codes: $rc - 1 words, 2 appendix, 4 questions, 8 reads, 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
 }
 
 behavior(){
@@ -147,10 +147,13 @@ meta(){
 
 # Instrument self-tests — appended to check.sh's selftest()
 guidance_key(){
-  # hash ONLY what the model reads - SKILL.md, references/, assets/. An earlier version hashed all of
-  # bundle/, so a test-only edit "invalidated" behavioural evidence about guidance that had not moved.
-  git -C "$REPO" rev-parse HEAD:bundle/worldbuilding/SKILL.md HEAD:bundle/worldbuilding/references \
-    HEAD:bundle/worldbuilding/assets 2>/dev/null | tr -d '\n' | cksum | awk '{printf "%08x", $1}'
+  # Hash the WORKING TREE contents of what the model reads - not git's committed copy. Evidence
+  # produced against uncommitted guidance used to carry the pre-edit key, which made "graded against
+  # the current build" false on every dirty step (that is: all of them). Locates the bundle from this
+  # script's own path, so it must not depend on $B / $BUNDLE being defined by the caller.
+  local d; d=$(cd "$(dirname "$0")/.." && pwd)
+  { cat "$d/SKILL.md" 2>/dev/null; cat "$d"/references/*.md 2>/dev/null; cat "$d"/assets/*.md 2>/dev/null; } \
+    | cksum | awk '{printf "%08x", $1}'
 }
 selftest(){
   # NOTE: probes must NOT save-and-restore the counters - an earlier draft did, so every red probe
@@ -195,7 +198,14 @@ out = ['# x (skill) MULTI',
        'label: commit=deadbe bundle=abcd1234 spec_rev=R-3 words_per_turn=160 texture_cadence=4']
 for i in range(5):
     t, p = tg[i], pv[i]
-    if mode == 'same-pillar': t = 'geography-routes'
+    # a pillar that RECURS without ever being consecutive: legal under spec §4, and the old probe
+    # asserted the opposite because I wrote a list with turns 1-2 identical
+    if mode == 'same-pillar': t = ['geography-routes', 'daily-life', 'geography-routes',
+                                   'voice-attention', 'politics-power'][i]
+    if mode == 'consecutive-logged': t = ['history-periodisation', 'politics-power', 'politics-power',
+                                          'daily-life', 'voice-attention'][i]
+    if mode == 'unlogged': t = ['history-periodisation', 'politics-power', 'daily-life',
+                               'voice-attention', 'geography-routes'][i]
     if mode == 'no-texture':  t = ['history-periodisation', 'politics-power', 'geography-routes',
                                    'institutions-law', 'ecology-resources'][i]
     if mode == 'provoked-repeat': p = 'connection'
@@ -203,8 +213,10 @@ for i in range(5):
     if mode == 'double-question' and i == 2: q = '**Question.** Which crossing is oldest? And which is widest?'
     body = '**Digest.** ok.'
     if mode == 'long-turn' and i == 1: body = '**Digest.** ' + 'word ' * 200
+    stop = f'**Stop.** `provoked: {p}'
+    stop += f' · targeted: {t}`' if mode != 'unlogged' else '`'
     out += [f'## turn {i+1}', 'writer: an answer', body, f'**Target.** {t}.',
-            f'**Stop.** `provoked: {p}`', q, '- steady — one two three', '']
+            stop, q, '- steady — one two three', '']
 open(path, 'w').write('\n'.join(out) + '## files after run\n')
 if int(sess):
     n = int(sess)
@@ -218,7 +230,7 @@ if int(sess):
 
 L
   }
-  crash(){ [ $(( $1 & 64 )) = 0 ] || { no "selftest: invariants.py CRASHED (rc=$1) - a broken tool, not a finding"; return 1; }; return 0; }
+  crash(){ [ $(( $1 & 128 )) = 0 ] || { no "selftest: invariants.py CRASHED (rc=$1) - a broken tool, not a finding"; return 1; }; return 0; }
   rm -f "$TMP"/*.session.jsonl
   build_ev "$TMP/a.md" ok 2; rc=0; python3 "$B/tests/invariants.py" "$TMP/a.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ "$rc" = 0 ] && ok "selftest: invariants accepts a valid 5-turn run" || no "selftest: invariants rejects a valid run (rc=$rc) - untrustworthy"
@@ -228,8 +240,18 @@ L
   crash $rc && [ $((rc & 1)) = 1 ] && ok "selftest: invariants catches an over-budget turn" || no "selftest: invariants MISSES an over-budget turn (rc=$rc)"
   build_ev "$TMP/d.md" provoked-repeat 2; python3 "$B/tests/invariants.py" "$TMP/d.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 32)) = 32 ] && ok "selftest: invariants catches 3 identical provoked types" || no "selftest: invariants MISSES a provoked repeat (rc=$rc)"
+  # the written rule is CONSECUTIVE turns, not three running (spec §4) - so a file that alternates
+  # must pass even when one pillar recurs, and a logged repeat must be adjudicable, not silent
   build_ev "$TMP/e.md" same-pillar 2; python3 "$B/tests/invariants.py" "$TMP/e.md" >/dev/null 2>&1; rc=$?
-  crash $rc && [ $((rc & 32)) = 32 ] && ok "selftest: invariants catches one pillar 3 turns running" || no "selftest: invariants MISSES lopsidedness (rc=$rc)"
+  crash $rc && [ $((rc & 64)) = 0 ] && ok "selftest: alternating pillar with a recurring one is not a breach" \
+    || no "selftest: invariants invented a rule (rc=$rc) - spec says consecutive, not 3 running"
+  build_ev "$TMP/e2.md" consecutive-logged 2; python3 "$B/tests/invariants.py" "$TMP/e2.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 64)) = 64 ] && ok "selftest: invariants catches a logged consecutive repeat" \
+    || no "selftest: invariants MISSES a logged repeat (rc=$rc)"
+  build_ev "$TMP/e3.md" unlogged 2; python3 "$B/tests/invariants.py" "$TMP/e3.md" >"$TMP/e3.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 64)) = 0 ] && grep -q 'targeted:. logged in' "$TMP/e3.out" \
+    && ok "selftest: an unlogged target is announced as missing state, never scored silently" \
+    || no "selftest: invariants scored targets it could not see (rc=$rc)"
   build_ev "$TMP/f.md" no-texture 2; python3 "$B/tests/invariants.py" "$TMP/f.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 16)) = 16 ] && ok "selftest: invariants catches texture never asked within cadence" || no "selftest: invariants MISSES a cadence breach (rc=$rc)"
   build_ev "$TMP/g.md" ok 4; python3 "$B/tests/invariants.py" "$TMP/g.md" >/dev/null 2>&1; rc=$?
@@ -255,6 +277,15 @@ L
   { echo "# x"; echo '## transcript'; echo '- steady — one two three'; echo "- sharp — $(yes word | head -22 | tr '\n' ' ')"; echo '## files after run'; } > "$TMP/both.md"
   python3 "$B/tests/wordcount.py" "$TMP/both.md" 160 >/dev/null 2>&1
   [ $? = 2 ] && ok "selftest: wordcount separates turn from appendix failures" || no "selftest: wordcount cannot say which limit rang"
+
+  # guidance_key() must move when guidance moves, and NOT move when only a test moves
+  local k1 k2; k1=$(guidance_key)
+  printf '\n<!-- probe -->\n' >> "$B/references/voice.md"; k2=$(guidance_key)
+  [ "$k1" != "$k2" ] && ok "selftest: guidance key tracks a change to references/" || no "selftest: guidance key ignores edited guidance - evidence would be mislabelled"
+  git -C "$REPO" checkout -- "$B/references/voice.md" 2>/dev/null || true
+  [ "$(guidance_key)" = "$k1" ] && ok "selftest: guidance key restored with the file" || no "selftest: guidance key unstable across a restore"
+  k2=$( { cd "$REPO" && git rev-parse HEAD:bundle/worldbuilding/tests | cksum; } | awk '{printf "%08x",$1}')
+  [ "$k1" != "$k2" ] && ok "selftest: guidance key is not the bundle tree hash (tests excluded)" || no "selftest: guidance key degenerated to a bundle hash"
 
   rm -rf "$TMP"
 }

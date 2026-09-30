@@ -325,3 +325,18 @@ they carry their own limits (≤18 words each; ≤6 bullets) and §3.1 *mandates
 it against the conversational budget makes the cap unsatisfiable on exactly the wrap-up turns §3.1
 requires — the same self-contradiction as finding I6. Cost if wrong: a close turn gets 160 words of
 cap plus an unbounded appendix; the appendix bounds are the control there, not the cap.
+
+**R-4 (2026-09-30, gate finding F7)** — Each turn logs `targeted: <pillar>` alongside `provoked:
+<type>`, in chat and `log.md`. §4's constraint "never the same pillar in consecutive turns when
+another candidate reaches `lopsidedness_floor`" was **unobeyable as written**: nothing on disk records
+what the previous turn targeted, and past the first couple of turns the transcript is no longer in
+context to be re-read. Two runs hammered `faith-myth` for four consecutive turns, which is not
+disobedience so much as an arithmetic the skill cannot perform without state.
+Cost if wrong: one more field on every log line, and a writer reading `log.md` sees bookkeeping that
+is not prose. Accepted: the alternative is a rule that reads as guidance and functions as decoration.
+Related correction: F7 was first reported to the operator as a *conflict* between the lopsidedness
+floor and the switch rule. It is not a conflict. The floor sets priority by gap size; §4 already
+forbids consecutiveness; the missing piece was the record. What the spec never supported is the
+"never 3 turns running" test the harness was asserting - that rule is my invention, now corrected to
+consecutive turns (spec §4), with the ≥ `lopsidedness_floor` condition reported as ADVISORY because
+candidate scores are not recorded either.
