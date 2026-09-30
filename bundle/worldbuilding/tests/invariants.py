@@ -134,6 +134,22 @@ def main():
     elif runs:
         print(f'   same pillar in consecutive turns, ending at turn(s) {runs} - ADVISORY: only'
               f' {logged}/{len(targ)} turns logged `targeted:`, so the rest are inferred from prose')
+    # The close contract: at 12 turns (or when the writer wraps up) the skill owes 3-6 bullets of
+    # what was decided plus the next thread and why. A session that never closes is a session where
+    # nothing was consolidated, and that is the whole point of the encyclopedia.
+    recap = [len([l for l in b.split('\n') if RECAP.match(l)]) for b in ts]
+    cues = [i for i, b in enumerate(ts) if re.search(r"(?m)^writer:.*(that's all|that is all|wrap it up|done for today)", b)]
+    owed = (len(ts) >= 12 and len(ts) - 1) or (cues[-1] if cues else -1)
+    if owed >= 0:
+        window = 'turn 12' if len(ts) >= 12 else f'turn {owed + 2} (writer wrapped at turn {owed + 1})'
+        got = max(recap[owed:] or [0]), any(re.search(r'(?i)next thread|\*\*next', ' '.join(ts[owed:])) for _ in [0])
+        if got[0] < 3 or not got[1]:
+            print(f'   close contract not met by {window}: {got[0]} recap bullets,'
+                  f' {"names" if got[1] else "does not name"} the next thread'); rc |= 2
+        else:
+            print(f'   close contract met at {window}: {got[0]} bullets + next thread named')
+    elif len(ts) < 12:
+        print(f'   close not owed ({len(ts)} turns, no wrap-up cue) - not scored either way')
     if logged < len(targ):
         print(f'   `targeted:` logged in {logged}/{len(targ)} turns - the consecutive-pillar rule has'
               f' no state to evaluate against without it (R-4)')

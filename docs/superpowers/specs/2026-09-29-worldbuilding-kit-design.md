@@ -376,3 +376,10 @@ case; R-6 (`reads_per_turn` as a named tunable) is the right shape for a scale g
 supported by evidence of a breach, and neither may be cited as a fix for one. What the corrected
 instrument does still show at depth: `words_per_turn` breached by turns 1 and 4 of the last run
 (164, 169 against 160), and two candidate options over 18 words.
+
+
+**R-7 (2026-09-30, operator decision)** — `words_per_turn` default 160 → 170, on three 5-turn runs
+whose deepest turns measured 164 and 169. Stated plainly because the pattern is the one criticised in
+R-2: this is a budget set just above the observed maximum, so it will stop biting on exactly the turns
+that motivated it unless the 12-turn run shows the ceiling is elsewhere. The test that settles it is
+turn-level distribution at depth, not another single-turn sample.

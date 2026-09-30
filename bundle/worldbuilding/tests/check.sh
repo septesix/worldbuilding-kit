@@ -304,6 +304,32 @@ L
   crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: 4 actual reads do trip the wire" \
     || no "selftest: the read tripwire is blind to real reads (rc=$rc)"
   rm -f "$TMP/g.md.session.jsonl"
+  # the close contract must be able to fail, and must stay silent when close is not owed
+  local cbad; cbad=$(python3 - "$TMP" "$B" 2>&1 <<'L3' | tail -1
+import sys, subprocess
+tmp, b = sys.argv[1], sys.argv[2]
+def build(path, n, recap_at=None, cue=False):
+    out = ['# x (skill) MULTI', 'label: commit=deadbe guidance=abcd1234 spec_rev=R-7 words_per_turn=170 texture_cadence=4 reads_per_turn=3']
+    for i in range(1, n + 1):
+        out += [f'## turn {i}', 'writer: ' + ("that's all I have for today, wrap it up" if cue and i == n else 'an answer'),
+                '**Digest.** ok.', f'**Target.** geography-routes.', f'**Stop.** `provoked: c{i}`',
+                '**Question.** Which crossing is oldest?']
+        if recap_at and i >= recap_at:
+            out += ['- `nine-bridges-place`: settled.', '- `bridge-tolls-custom`: revised.',
+                    '- new `tenth-bridge-custom`, all `proposed:`.', '**Next: T-014** - whose name.']
+        out += ['']
+    open(path, 'w').write('\n'.join(out) + '## files after run\n')
+build(tmp+'/k1.md',12,recap_at=12); build(tmp+'/k2.md',12); build(tmp+'/k3.md',6)
+build(tmp+'/k4.md',5,recap_at=5,cue=True); build(tmp+'/k5.md',5,cue=True)
+bad=[]
+for f,want in (('k1',0),('k2',2),('k3',0),('k4',0),('k5',2)):
+    rc=subprocess.run(['python3', b+'/tests/invariants.py', tmp+'/%s.md'%f],capture_output=True,text=True)
+    if (rc.returncode & 2)!=want: bad.append('%s: want bit2=%d got %d'%(f,want,rc.returncode&2))
+print('OK' if not bad else 'BAD '+'; '.join(bad))
+L3
+)
+  [ "$cbad" = OK ] && ok "selftest: close contract fails when unmet (k2,k5) and stays silent when not owed (k1,k3,k4)" || no "selftest: close-contract assertion wrong - $cbad"
+
   # reads are measured against reads_per_turn from the label, not a hardcoded constant
   build_ev "$TMP/g0.md" ok 4
   sed -i 's/texture_cadence=4$/texture_cadence=4 reads_per_turn=6/' "$TMP/g0.md"
