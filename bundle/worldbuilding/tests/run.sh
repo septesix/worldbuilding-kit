@@ -18,11 +18,20 @@ esac
 CLEAN=(env -u PI_API_KEY -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u PI_PROVIDER -u PI_REASONING_LEVEL HOME="$FAKEHOME")
 args=(--no-extensions --no-skills --no-session)
 [ "$VAR" = skill ] && args+=(--skill "$REPO/bundle/worldbuilding")
+RUN_TIMEOUT="${RUN_TIMEOUT:-900}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-$STAMP.md"; mkdir -p "$REPO/evidence"
 { echo "# $SCEN ($VAR) $STAMP"; echo "cwd: $WORK"; echo "## prompt"; cat "$HERE/prompts/$SCEN.txt"
-  echo "## transcript"; ( cd "$WORK" && "${CLEAN[@]}" timeout 600 pi "${args[@]}" -p "$(cat "$HERE/prompts/$SCEN.txt")" ) || echo "INFRA-FAIL: pi exited nonzero"
-  [ "$(sed -n '/## transcript/,/## files after run/p' "$OUT" | wc -l)" -gt 3 ] || echo "INFRA-FAIL: empty transcript"
+  echo "## transcript"; ( cd "$WORK" && "${CLEAN[@]}" timeout "$RUN_TIMEOUT" pi "${args[@]}" -p "$(cat "$HERE/prompts/$SCEN.txt")" ); RC=$?
+  echo "## pi exit status: $RC"
+  TL=$(sed -n '/## transcript/,/## files after run/p' "$OUT" | wc -l)
+  [ "$RC" = 0 ] || echo "INFRA-FAIL: pi exited nonzero (rc=$RC, timeout ${RUN_TIMEOUT}s)"
+  [ "$TL" -gt 3 ] || echo "INFRA-FAIL: empty transcript ($TL lines)"
   echo "## files after run"; ( cd "$WORK" && find . -path ./.git -prune -o -type f -print | sort )
   echo "## world/ contents"; ( cd "$WORK" && for f in $(find . -path "*world*" -name "*.md" -type f | sort); do echo "--- $f"; head -c 2500 "$f"; echo; done )
 } > "$OUT" 2>&1
-grep -qiE 'SDD|worldbuilding-kit|superpowers|/home/septesix' "$OUT" && echo "CONTAMINATED (parent context present in run) -> $OUT" || echo "clean -> $OUT"
+# exit contract: 0 usable run | 1 contaminated | 2 infrastructure failure | 3 both
+INFRA=0; grep -q 'INFRA-FAIL' "$OUT" && { INFRA=2; echo "INFRA-FAIL -> $OUT"; }
+CONT=0; grep -qiE 'SDD|worldbuilding-kit|superpowers|/home/septesix' "$OUT" && { CONT=1; echo "CONTAMINATED -> $OUT"; }
+[ "$INFRA" = 0 ] && [ "$CONT" = 0 ] && echo "clean -> $OUT"
+[ "$INFRA" = 2 ] && [ "$CONT" = 1 ] && exit 3
+exit $((INFRA + CONT))

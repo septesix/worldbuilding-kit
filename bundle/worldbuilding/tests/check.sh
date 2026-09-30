@@ -10,12 +10,13 @@ no(){ printf '  FAIL %s\n' "$1"; FAIL=$((FAIL+1)); }
 ck(){ if [ "$1" = "$2" ]; then ok "$3"; else no "$3 (got $1, want $2)"; fi; }
 # has <label> <file> <ERE> - presence, for rules that only need to appear somewhere
 has(){ if grep -qE "$3" "$2" 2>/dev/null; then ok "$1"; else no "$1"; fi; }
-newest(){ ls -1t "$REPO"/evidence/"$1"-*.md 2>/dev/null | head -1; }
+newest(){ ls -1t "$REPO"/evidence/"$1"-${2:-control}-*.md 2>/dev/null | head -1; }
 
 harness(){
   # capture integrity + contamination only. The "baseline ignores the files" assertion was
   # dropped: clean-context runs READ and WROTE the encyclopedia correctly (evidence/BASELINE.md).
-  local e; e="$(newest continue-established)"; [ -n "$e" ] || { no "no control evidence; run tests/run.sh continue-established control"; return; }
+  local e; e="$(newest continue-established control)"; [ -n "$e" ] || { no "no control evidence; run tests/run.sh continue-established control"; return; }
+  grep -q "INFRA-FAIL" "$e" && { no "control evidence is an infra failure: $e"; return; }
   local n; n=$(awk '/## transcript/,/## files after run/' "$e" | wc -l); [ "$n" -gt 4 ] && ok "transcript captured ($n lines)" || no "transcript empty ($n lines) - infra failure"
   grep -q 'lockkeepers-daughter\|## files after run' "$e" && ok "file listing captured" || no "file listing missing"
   grep -qiE 'SDD ledger|worldbuilding-kit/|superpowers|pi/agent/skills' "$e" && no "CONTAMINATED: parent context reached the control run" || ok "control context clean"
