@@ -38,9 +38,10 @@ nearest wins; name the path.
 ## Scoring
 
 `score = gap_weight × weight_gap + hook_weight × weight_hook + contradiction × weight_contradiction`
+Show all three terms.
 
-**gap_weight** = size of the hole: 3 = **empty** or all-`proposed:` · 2 = 1–2 `established:` ·
-1 = ≥3 across ≥2 entities · 0 = saturated. **hook_weight** = linked established entities 0–3, +1
+**gap_weight** = the hole: 3 = **empty** (no `established:`) · 2 = 1–2 ·
+1 = ≥3 in ≥2 entities · else 0. **hook_weight** = linked established entities 0–3, +1
 want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 
 Never the same pillar twice running when another scores

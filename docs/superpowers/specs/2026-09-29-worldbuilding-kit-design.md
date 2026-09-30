@@ -433,3 +433,14 @@ calls - and is wired into both harnesses. Cost if wrong: `world/encyclopedia/` a
 entities the writer abandoned; mitigated because orphans were already a concept in `review`, and the
 alternative - silent disappearance of a named thing the writer once explained - is the one loss the
 encyclopedia cannot recover from.
+
+**R-12 (2026-09-30, gate finding I7)** — scoring is disclosed and arithmetically checkable. Two
+symptoms, one root: `gap_weight` was an impression rather than a lookup (a thin pillar was awarded 3,
+which the scale reserves for *nothing there*), and scores appeared as bare numbers ("scores highest"),
+which cannot be audited by the writer or the harness. `gap_weight` is now defined against the
+`Pillar coverage` table - `established == 0` → 3 · `1–2` → 2 · `≥3` across `≥2` entities → 1 · else 0 -
+and the guidance requires all three terms wherever a score is shown. `invariants.py` verifies a
+disclosed score's gap term against the dumped table and flags a score with no terms, so §4.1's
+arithmetic is now part of the gate instead of part of the argument. Cost if wrong: the audit is only as
+good as the index table it reads; a stale table produces a false contradiction, which the index rebuild
+rule already treats as a first-class failure to announce rather than silently score against.

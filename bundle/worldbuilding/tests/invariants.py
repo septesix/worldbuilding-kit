@@ -21,6 +21,33 @@ PILLARS = [m.group(1) for m in re.finditer(r'^\| ([a-z-]+) +\|',
            open(os.path.join(HERE, '..', 'assets', 'index-template.md'), encoding='utf-8').read(), re.M)
            if m.group(1) != 'pillar']
 TEXTURE = ('daily-life', 'voice-attention', 'texture')
+
+# I7: a printed score is a claim about arithmetic, and the world index carries the operands. Checking
+# one against the other is what turns "the skill improvised the number" from a vibe into a failure.
+COVERAGE = re.compile(r'^\|\s*([a-z][a-z-]+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|', re.M)
+# either spelling of the disclosure - `gap 3 x 1.0 + ...` or `3 x weight_gap + ...` - because the first
+# draft required the literal 'weight_gap' and would have scored the rubric's own example as a bare number
+# A line that shows a score must disclose its factors; the first factor is gap_weight. Detection is
+# per line, not per joined prose: a negative lookahead over a big string let the engine backtrack
+# "scores 3.0" down to "scores 3" to dodge its own guard, and reported a compliant line as bare.
+GAP_LABELED = re.compile(r'gap(?:_weight)?\s*(\d+)\s*(?:\u00d7|x)', re.I)
+GAP_IMPLIED = re.compile(r'(\d+)\s*(?:\u00d7|x)\s*[\d.]+\s*\+', re.I)
+SHOWS_SCORE = re.compile(r'\bscore(?:d|s)?\b|\bscores\b', re.I)
+
+
+def coverage_table(text):
+    out = {}
+    for m in COVERAGE.finditer(text):
+        out[m.group(1)] = (int(m.group(2)), int(m.group(3)))     # entries, established
+    return out
+
+
+def gap_scale(entries, established):
+    # spec §4.1, read off the table instead of the prose: 3 means nothing is there, 2 means thin
+    if established == 0: return 3
+    if established <= 2: return 2
+    if established >= 3 and entries >= 2: return 1
+    return 0
 OPT       = re.compile(r'^\s*[-*] ?\*{0,2}(steady|sharp|strange)\b', re.I)
 BULLET    = re.compile(r'^\s*[-*] +')
 RECAP     = re.compile(r'^\s*[-*] +(`[\w-]+`|\*\*|new |T-\d)')
@@ -129,6 +156,7 @@ def main():
     sess = path + '.session.jsonl' if os.path.exists(path + '.session.jsonl') else ''
     LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
     CAP, CAPSRC = beat_cap(text, lab.group(0) if lab else '')
+    TABLE = coverage_table(text)
     print(f'   beat budget {CAP}w ({CAPSRC})')
     # computed up front: the cadence and rotation loops both consult it, and an earlier draft
     # referenced it before assignment, which is a crash, not a verdict (UnboundLocalError)
@@ -197,6 +225,23 @@ def main():
         # the beat cap is the second half of the word rule: a turn inside words_per_turn can still be
         # one 90-word monologue beat, and that is the shape that stops sounding like conversation
         for nm, bw in fat: bad.append(f'{nm} {bw}w > beat {CAP}'); rc |= 1
+        # scoring audit: a score with no terms cannot be checked; a score with terms can, and the
+        # index is the referee. Both halves of I7 were observed in the archive.
+        shown = ' '.join(prose)
+        for l in prose:
+            if not SHOWS_SCORE.search(l): continue
+            g = GAP_LABELED.search(l) or GAP_IMPLIED.search(l)
+            if not g:
+                bad.append('bare score, no terms (show gap x weight + hook x weight + contradiction x weight)')
+                rc |= 2; continue
+            if hit[0] in TABLE:
+                entries, est = TABLE[hit[0]]
+                want = gap_scale(entries, est)
+                got = int(g.group(1))
+                if got != want:
+                    bad.append(f'gap_weight {got} contradicts index '
+                               f'({hit[0]}: {est} established / {entries} entities wants {want})')
+                    rc |= 2
         # the close turn owes a recap and the next thread, not another question - §3.1. Scoring it for
         # "0 questions" failed a turn for doing the thing the contract asks for at the end of a session.
         if nq != 1 and not (closing and len(recap) >= 3): bad.append(f'{nq} questions'); rc |= 4

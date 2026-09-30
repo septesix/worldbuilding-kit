@@ -43,6 +43,9 @@ templates(){
   has "beat budget named in SKILL" "$B/SKILL.md" 'beat_budget'
   has "append-only covers files, not just lines (F6)" "$B/SKILL.md" 'never delete one under'
   has "entity template says the file survives (F6)" "$B/assets/entity-template.md" 'never delete the'
+  has "score disclosure named in SKILL (I7)" "$B/SKILL.md" 'Show all three terms'
+  has "scoring honesty documented in the rubric (I7)" "$B/references/rubric.md" 'Scoring honesty'
+  has "gap_weight stated as a table lookup (I7)" "$B/references/rubric.md" 'coverage'
   has "canoncheck wired into the single-turn harness" "$B/tests/run.sh" 'canoncheck'
   has "canoncheck wired into the multi-turn harness" "$B/tests/multiturn.sh" 'canoncheck'
   # a rule may live in SKILL or in references - what is not allowed is living in neither. SKILL alone
@@ -164,7 +167,7 @@ multi(){
     python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?))
   done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
-    || no "multi-turn invariant breached (bitmask $rc: 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
+    || no "multi-turn invariant breached (bitmask $rc: 1 words/beats, 2 appendix/scoring, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
 }
 
 behavior(){
@@ -513,6 +516,45 @@ L
   r=$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt" --transcript "$CD/tr3.md")
   [ "$r" = 1 ] && ok "selftest: os.remove of an entity is caught, not just shell rm" \
     || no "selftest: a python-side delete is invisible (rc=$r)"
+
+  # I7: a printed score is arithmetic, so it is checkable. Three probes: the disclosure, the value,
+  # and the bare-number form that hid improvised scoring for two revisions.
+  score_ev(){ python3 - "$1" "$2" "$3" <<'L'
+import sys
+path, kind, gap = sys.argv[1], sys.argv[2], sys.argv[3]
+shown = ('ecology-resources scores highest' if kind == 'bare'
+         else 'ecology-resources scores %.1f (gap %s x 1.0 + hook 1 x 1.0 + contradiction 0 x 1.5)'
+              % (int(gap) * 1.0 + 1.0, gap))
+out = ['# x (skill) MULTI',
+       'label: commit=deadbe guidance=abcd1234 spec_rev=R-11 words_per_turn=170 texture_cadence=4 reads_per_turn=3',
+       '## turn 1', 'writer: an answer',
+       '**Digest.** The ledger keeps its own word for a name.',
+       '**Target.** ' + shown + '.',
+       '**Write back.** Filed under ecology-resources.',
+       '**Question.** Which crossing does the toll count twice?',
+       '**Stop.** `provoked: cost`',
+       '- steady \u2014 one two three', '',
+       '## world/ contents', '--- ./world/index.md', '## Pillar coverage',
+       '| pillar | entries | established | proposed | status |', '|---|---|---|---|---|',
+       '| ecology-resources | 1 | 2 | 0 | thin |',
+       '--- ./world/log.md', '## 2026-09-30 (session 5)',
+       '- turn: 1 \u00b7 provoked: cost \u00b7 targeted: ecology-resources', '']
+open(path, 'w').write('\n'.join(out))
+L
+}
+  score_ev "$TMP/s1.md" terms 2; python3 "$B/tests/invariants.py" "$TMP/s1.md" >"$TMP/s1.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] && ! grep -q 'gap_weight' "$TMP/s1.out" \
+    && ok "selftest: a correct disclosed score passes (thin pillar, gap 2)" \
+    || no "selftest: the right arithmetic fails (rc=$rc) - the audit is not reading the table"
+  score_ev "$TMP/s2.md" terms 3; python3 "$B/tests/invariants.py" "$TMP/s2.out" >/dev/null 2>&1
+  python3 "$B/tests/invariants.py" "$TMP/s2.md" >"$TMP/s2.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'gap_weight 3 contradicts index' "$TMP/s2.out" \
+    && ok "selftest: gap 3 on a thin pillar is caught - the stale-index symptom, named" \
+    || no "selftest: a wrong gap_weight slipped through (rc=$rc) - I7 unpinned"
+  score_ev "$TMP/s3.md" bare 2; python3 "$B/tests/invariants.py" "$TMP/s3.md" >"$TMP/s3.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'bare score' "$TMP/s3.out" \
+    && ok "selftest: a score with no terms is flagged, not admired" \
+    || no "selftest: 'scores highest' passed as evidence (rc=$rc) - the disclosure rule is decorative"
 
   # regression witness, on evidence rather than synthetic input: two runs the old fixture-only check
   # certified as canon-clean did `rm encyclopedia/lighthouse-place.md` mid-session. If the detector ever

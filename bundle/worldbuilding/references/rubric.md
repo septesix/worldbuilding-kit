@@ -103,6 +103,17 @@ Worked example — `severins-child-place`, named by the writer mid-turn:
 - **Candidates** are existing entities and the nine child generators below - not new inventions on the
   spot, which is how a world acquires a fourteenth bridge.
 
+## Scoring honesty (F5/I7)
+
+- **`gap_weight` is a lookup, not an impression.** Read the pillar row in `world/index.md`'s coverage
+  table - `entries` counts the entities touching the pillar, `established` counts canon facts:
+  0 established (or all `proposed:`) -> **3** | 1-2 established -> **2** | >=3 established across >=2
+  entities -> **1** | anything else -> **0**. A thin pillar is 2, never 3: 3 means *nothing is there*.
+- **Show the three terms wherever you show a score**, labelling the first one, which is the one that
+  gets improvised: `faith-myth scores 7.5 (gap 3 x 1.0 + hook 2 x 1.0 + contradiction 1 x 1.5)`, not
+  `faith-myth scores highest`. A bare number cannot be checked by the writer or by the harness, and an
+  unchecked number is how improvised scoring survived two revisions.
+
 ## Hard rules (3)
 
 1. A question must be answerable in one sentence. If the answer needs a paragraph, that was two
