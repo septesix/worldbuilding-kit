@@ -85,6 +85,15 @@ kit(){
 }
 
 selftest_bad=0
+meta(){
+  # a check that exists but is not in the all-loop is a silent exclusion (it happened once)
+  local defined run
+  defined=$(grep -oE '^[a-z]+\(\)\{' "$0" | sed 's/[(){]//g' | grep -vE '^(ok|no|ck|has|newest|pil|selftest|meta)$' | sort -u)
+  run=$(sed -n '/for f in /s/.*for f in \([a-z ]*\);.*/\1/p' "$0" | tr ' ' '\n' | sort -u | grep -v '^$')
+  local missing; missing=$(comm -23 <(echo "$defined") <(echo "$run"))
+  [ -z "$missing" ] && ok "every defined check runs in 'all'" || no "SILENTLY EXCLUDED from all: $(echo $missing)"
+}
+
 selftest(){
   # the ck helper must actually assert; it previously compared its own expected
   # argument to 1, which made every count assertion vacuous or unsatisfiable
@@ -111,11 +120,11 @@ case "${1:-all}" in
   harness) harness;; fixture) fixture;; templates) templates;; rubric) rubric;; voice) voice;;
   method) method;; kit) kit;; selftest) selftest;;
   all)
-    echo "[selftest]"; selftest
+    echo "[selftest]"; selftest; meta
     if [ "$selftest_bad" = 1 ]; then
       echo "check.sh: SELFTEST FAILED - the assertion helper is broken; refusing to run the gate"
       echo "check.sh: $PASS passed, $FAIL failed"; exit 2
     fi
-    for f in harness templates rubric voice method kit; do echo "[$f]"; $f; done;;
+    for f in harness fixture templates rubric voice method kit; do echo "[$f]"; $f; done;;
 esac
 echo "check.sh: $PASS passed, $FAIL failed"; [ "$FAIL" = 0 ]

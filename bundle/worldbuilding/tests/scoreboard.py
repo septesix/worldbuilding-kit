@@ -63,6 +63,13 @@ def main():
     if not os.path.exists(idx):
         print('index.md missing'); return 1
     cur = open(idx, encoding='utf-8').read()
+    for heading, hdr in (('## Pillar coverage', '| pillar |'), ('## Entities', '| slug |')):
+        i = cur.find(heading)
+        nxt = cur.find('\n## ', i + 1)
+        seg = cur[i:nxt if nxt > 0 else len(cur)] if i >= 0 else ''
+        if hdr not in seg:
+            print(f'NO COLUMN HEADER under {heading} (markdown table will not render)')
+            return 1
     bad = [r for r in rows + ents if r not in cur]
     stale = [l for l in cur.split('\n') if re.match(r'^\| [a-z-]+ \| \d', l) and l not in rows and l not in ents]
     for b in bad: print('MISSING from index : ' + b)
