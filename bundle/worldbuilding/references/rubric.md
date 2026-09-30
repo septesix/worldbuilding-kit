@@ -44,7 +44,9 @@ Bookkeeping only; the score that uses these counts lives in `../SKILL.md`.
   this arithmetic in standing form, rewritten by bookkeeping every turn. Opening bodies to count lines
   is how a turn ends up reading six files to decide what to ask, which `../SKILL.md` forbids at three.
   Read **one** body: the entity you are about to target, to quote it. Count from the tables; look in a
-  body only to have something true to say about it.
+  body only to have something true to say about it. If you find yourself opening more than
+  `reads_per_turn` bodies, that is not a ration you exceeded - it is evidence you are scoring from
+  files. Stop, rebuild `index.md` from the bodies, announce it, and score from the result.
 - Rebuild the tables from the bodies only when `index.md` is missing or stale, announce the rebuild,
   and count from the result. Lines marked `superseded-by:` are history and count for nothing.
 - A pillar with no lines at all, or only `proposed:` lines, is **empty**.

@@ -59,8 +59,10 @@ def main():
     limit = int(opt.get('limit', 160)); cad = int(opt.get('cadence', 4)); maxr = int(opt.get('max-reads', 3))
     path = files[0]
     text = open(path, encoding='utf-8', errors='replace').read()
-    label = re.search(r'^label: .*words_per_turn=(\d+) texture_cadence=(\d+)', text, re.M)
-    if label: limit, cad = int(label.group(1)), int(label.group(2))
+    label = re.search(r'^label: .*words_per_turn=(\d+) texture_cadence=(\d+)(?: reads_per_turn=(\d+))?', text, re.M)
+    if label:
+        limit, cad = int(label.group(1)), int(label.group(2))
+        if label.group(3): maxr = int(label.group(3))
     sess = path + '.session.jsonl' if os.path.exists(path + '.session.jsonl') else ''
     ts = turns_of(text)
     if not ts:
@@ -107,7 +109,9 @@ def main():
         rd = reads_per_turn(sess) or []
         over = [i + 1 for i, n in enumerate(rd) if n > maxr]
         print(f'   entity reads per turn: {rd or "none recorded"}')
-        if over: print(f'   OVER max-reads in turns {over}'); rc |= 8
+        if over:
+            print(f'   {maxr}-body tripwire crossed in turn(s) {over} - scoring from files, not from'
+                  f' index.md (raise reads_per_turn in world/index.md if this world needs it)'); rc |= 8
     else:
         print('   entity reads: UNKNOWN (no session log copied - cannot certify the read budget)'); rc |= 8
     if len(ts) >= cad:

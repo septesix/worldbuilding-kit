@@ -5,6 +5,7 @@ last_date: <YYYY-MM-DD>
 tunables:
   words_per_turn: 160
   texture_cadence: 4
+  reads_per_turn: 3   # a tripwire, not a ration: needing more means you are scoring from files
   sarcasm: on
   weight_gap: 1.0
   weight_hook: 1.0

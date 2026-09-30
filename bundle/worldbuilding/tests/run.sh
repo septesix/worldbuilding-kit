@@ -37,7 +37,8 @@ BHASH="$(guidance_key)"
 SPECREV="$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md 2>/dev/null | tail -1 | tr -d '*')"
 WPT=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md" 2>/dev/null)
 CAD=$(awk '/texture_cadence/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md" 2>/dev/null)
-LIMITS="words_per_turn=${WPT:-?} texture_cadence=${CAD:-?}"
+RPT=$(awk '/reads_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md" 2>/dev/null)
+LIMITS="words_per_turn=${WPT:-?} texture_cadence=${CAD:-?} reads_per_turn=${RPT:-?}"
 LABEL="commit=${COMMIT} guidance=${BHASH} spec_rev=${SPECREV:-R-0} ${LIMITS}"
 { echo "# $SCEN ($VAR) $STAMP"; echo "cwd: $WORK"; echo "label: $LABEL"
   echo "## prompt"; cat "$HERE/prompts/$SCEN.txt"

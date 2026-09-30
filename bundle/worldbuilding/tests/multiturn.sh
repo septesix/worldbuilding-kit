@@ -49,7 +49,7 @@ WPT=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/asse
 CAD=$(awk '/texture_cadence/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md")
 
 { echo "# $SCEN ($VAR) MULTI-TURN $STAMP"
-  echo "label: commit=$COMMIT guidance=$BHASH spec_rev=$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md | tail -1 | tr -d '*') words_per_turn=${WPT:-?} texture_cadence=${CAD:-?}"
+  echo "label: commit=$COMMIT guidance=$BHASH spec_rev=$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md | tail -1 | tr -d '*') words_per_turn=${WPT:-?} texture_cadence=${CAD:-?} reads_per_turn=${RPT:-?}"
   echo "cwd: $WORK"; echo "turns: $N"
   for i in $(seq 0 $((N - 1))); do
     echo "## turn $((i + 1))"

@@ -22,8 +22,8 @@ nearest wins; name the path.
 
 - **`new`**, no `world/` — scaffold `index.md`, `threads.md`, one file per entity from
   `assets/*-template.md`, all lines `proposed:`. Entity files, not prose fork-lists.
-- **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild it from the entity
-  files and announce the rebuild. ≤3 entity bodies per turn; never dump tables into chat.
+- **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild from the files and
+  announce it. ≤ `reads_per_turn` bodies, else you are scoring from files. Never dump tables into chat.
 - **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.
 
 ## The turn
@@ -60,5 +60,6 @@ Thread `status:` flips in place; question text never changes. New entities **spa
 Each turn logs `provoked: <type>` and `targeted: <pillar>`; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only. At close or
 after 12 turns: 3–6 bullets of what was decided, then the next thread and why, in chat and `log.md`.
 
-Tunables (`words_per_turn`, `texture_cadence`, `sarcasm`, the three weights, `lopsidedness_floor`)
+Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `sarcasm`, the weights,
+`lopsidedness_floor`)
 are read from `world/index.md` and edited there.

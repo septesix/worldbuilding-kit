@@ -350,3 +350,14 @@ arithmetic needs no file opening; R-4's rotation fix made it worse before this o
 more pillars meant counting more bodies. Cost if wrong: the tables can be stale and the skill then
 scores from a fiction - which is why §3's stale-index rebuild is a precondition, and why `check.sh
 fixture` derives those same tables mechanically.
+
+**R-6 (2026-09-30, operator question about F9)** — `≤3 entity bodies per turn` becomes
+`≤ reads_per_turn` (default 3), stated as a **scale tripwire, not a ration**. Its whole purpose, per
+§7's failure-mode table, is that a 300-entity world must not score itself by opening every entity.
+Crossing it is therefore evidence the structural rule (R-5: count from `index.md`) broke - the response
+is to rebuild the index, not to apologise for reading. The fixture's nine bridges are 7 entities and
+4.4 KB, where the cap protects nothing measurable, so breach counts at fixture scale were being read as
+quality defects when they were artefacts of test size; `invariants.py` now measures against the
+tunable so a small world cannot generate false alarms and a large one cannot generate silence.
+Cost if wrong: a writer who reads `reads_per_turn` as a licence to open 3 files every turn. The
+tripwire wording in `SKILL.md` exists to keep it legible as a diagnostic.

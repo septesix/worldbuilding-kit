@@ -76,6 +76,10 @@ method(){
   # R-4: the consecutive-pillar rule is only obeyable if the target is recorded
   has "turn log records the targeted pillar (R-4)" "$S" 'targeted: <pillar>'
   has "log line shape documented in the template" "$B/assets/index-template.md" 'targeted: <pillar>'
+  # R-6: the read cap became a scale tripwire wired to a tunable, in guidance, template and fixture
+  has "the body-read tripwire names the tunable (R-6)" "$S" 'reads_per_turn'
+  has "index-template carries the reads tunable" "$B/assets/index-template.md" 'reads_per_turn: [0-9]+'
+  has "fixture carries the reads tunable" "$B/tests/fixtures/established/world/index.md" 'reads_per_turn: [0-9]+'
   for k in contradiction rebuild proposed 3; do grep -qi "$k" "$S" && ok "Review Focus rule: $k" || no "Review Focus rule missing: $k"; done
 }
 kit(){
@@ -261,6 +265,19 @@ L
     || no "selftest: invariants scored targets it could not see (rc=$rc)"
   build_ev "$TMP/f.md" no-texture 2; python3 "$B/tests/invariants.py" "$TMP/f.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 16)) = 16 ] && ok "selftest: invariants catches texture never asked within cadence" || no "selftest: invariants MISSES a cadence breach (rc=$rc)"
+  # reads are measured against reads_per_turn from the label, not a hardcoded constant
+  build_ev "$TMP/g0.md" ok 4
+  sed -i 's/texture_cadence=4$/texture_cadence=4 reads_per_turn=6/' "$TMP/g0.md"
+  python3 "$B/tests/invariants.py" "$TMP/g0.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 8)) = 0 ] && ok "selftest: reads_per_turn=6 lets 4 reads pass (tunable, not constant)" \
+    || no "selftest: invariants ignores reads_per_turn - the cap is still hardcoded (rc=$rc)"
+  # same 4 reads, threshold lowered to 3: must bite. (3 reads vs a cap of 3 is COMPLIANT - my first
+  # draft asserted that as a breach, which would have had the tool failing a rule it never broke.)
+  build_ev "$TMP/g1.md" ok 4
+  sed -i 's/texture_cadence=4$/texture_cadence=4 reads_per_turn=3/' "$TMP/g1.md"
+  python3 "$B/tests/invariants.py" "$TMP/g1.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: 4 reads bite when reads_per_turn=3" \
+    || no "selftest: reads_per_turn=3 does not bite on 4 reads (rc=$rc)"
   build_ev "$TMP/g.md" ok 4; python3 "$B/tests/invariants.py" "$TMP/g.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: invariants catches a 4th entity read in one turn" || no "selftest: invariants MISSES the read budget (rc=$rc)"
   # regression: the last turn's chunk used to run to end-of-file and absorb the whole "## world/
