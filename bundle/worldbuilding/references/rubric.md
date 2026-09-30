@@ -126,7 +126,9 @@ file. Anything the computation cannot answer is said as unknown, never omitted i
 
 Then one line: what to do about it, as a thread reference, not a task list.
 
-The memo totals ≤ `memo_words` (120) and never counts against `words_per_turn`: it is an appendix, and
+The memo totals ≤ `memo_words` (150) and never counts against `words_per_turn`: it is an appendix, and
+six complete memos on file run 61-130 words while a seventh ran 203, so the ceiling sits above the
+first band and below the second - and
 an exempt artifact still needs a ceiling - the longest memo in the archive ran 180 words, which is a
 page, not a glance. Five items, one line each, citations over prose.
 **Log the review you gave.** The memo turn's machine line carries `provoked: review`. Without it the

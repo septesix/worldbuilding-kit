@@ -53,7 +53,7 @@ def memo_split(lines):
 
 def memo_cap(text):
     m = re.search(r'memo_words:\s*(\d+)', text)
-    return int(m.group(1)) if m else 120
+    return int(m.group(1)) if m else 150
 
 
 def wc_words(line):

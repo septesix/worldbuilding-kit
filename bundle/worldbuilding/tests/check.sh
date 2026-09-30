@@ -77,7 +77,7 @@ templates(){
     [ "$homes" -ge 1 ] && ok "rule survives somewhere: $q" || no "rule deleted from every file: $q"
   done
   local t missing=0
-  for t in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session; do
+  for t in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session memo_words option_words; do
     n=$(grep -rl "$t" "$B/SKILL.md" "$B/references" "$B/assets" "$B/tests/fixtures/established/world/index.md" 2>/dev/null | wc -l)
     [ "$n" -ge 3 ] || { missing=1; no "tunable $t appears in only $n places - a rule with no home"; }
   done
@@ -630,6 +630,20 @@ L
   grep -qE 'turn words \(limit 170\)' "$TMP/mm4.out" && ! grep -qE 'OVER +[2-9][0-9][0-9] turn' "$TMP/mm4.out" \
     && ok "selftest: the memo is not counted as turn prose by wordcount either" \
     || no "selftest: wordcount still folds the memo into turn words (single-turn runs misreport)"
+
+  # the default, so a silent revert to an older number cannot pass as "the tunable was absent"
+  memo_ev "$TMP/mm0.md" 26 999
+  python3 - "$TMP/mm0.md" <<'L'
+import sys
+pth = sys.argv[1]
+t = open(pth).read()
+open(pth, 'w').write('\n'.join(l for l in t.split('\n') if not l.strip().startswith('memo_words:')))
+L
+  python3 "$B/tests/wordcount.py" "$TMP/mm0.md" 170 >"$TMP/mm0.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] && grep -q 'memo 13' "$TMP/mm0.out" \
+    && ok "selftest: with no memo_words in the world, the documented default (150) applies" \
+    || no "selftest: the memo default is not 150 (rc=$rc: $(grep -o 'memo [0-9]*w (limit [0-9]*)' "$TMP/mm0.out"))"
+
 
   # I5: the review contract, both halves. One probe per failure mode, plus the reset that proves the
   # trigger is arithmetic on log.md and not a mood.
