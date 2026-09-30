@@ -3,7 +3,7 @@ world: nine bridges
 sessions: 4
 last_date: 2026-09-12
 tunables:
-  words_per_turn: 120
+  words_per_turn: 160
   texture_cadence: 4
   sarcasm: on
   weight_gap: 1.0

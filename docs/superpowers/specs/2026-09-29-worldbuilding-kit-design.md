@@ -117,7 +117,7 @@ there is no command surface.
 
 ```yaml
 tunables:
-  words_per_turn: 120      # excluding candidate options
+  words_per_turn: 160      # excluding candidate options — see revision R-2
   texture_cadence: 4       # every Nth turn must be a texture question
   sarcasm: on
   weight_gap: 1.0
@@ -186,7 +186,7 @@ Dry archivist, warmed up. The world is treated as already real and merely under-
 *"Severin has a reason; you simply haven't told anyone yet."* Second person for the writer's
 ideas, third person for the world.
 
-1. ≤120 words per turn (candidate options excluded). Jokes may appear anywhere in the turn,
+1. ≤160 words per turn (candidate options excluded). Jokes may appear anywhere in the turn,
    including inside the question.
 2. Sarcasm is permitted **when warranted**, defined as: it lands on the world's absurdity, an
    internal contradiction, or a thread the world keeps dodging. Never on the writer's idea,
@@ -308,3 +308,20 @@ the comparison read a file the worldbuilding skill rewrites during ordinary work
 was observed setting it to `0.1.0` unprompted. `metadata.version` in each `SKILL.md` is now the only
 version source, in a file the skill never writes. Cost of being wrong: a stale `world/` copy could
 mask an available upgrade, or a completed session could announce one.
+
+**R-2 (2026-09-30, operator decision on gate finding I1/F3)** — `words_per_turn` default raised
+120 → 160. Rationale: measured resume turns land at 152 with the skill installed; 120 was a number I
+chose during brainstorming by feel and it produces a budget the target behavior violates by ~25%
+under ordinary conditions. 160 keeps the cap a real constraint (control turns ran 178–500) while
+being a limit the intended output actually fits. Cost if wrong: the cap stops biting on the runs it
+was meant to prevent — verbosity drifts upward to fill whatever number is written, so the honest
+test is whether skill turns stay under it over time, not whether they do today. An operator editing
+this in `world/index.md` overrides per world, which is the mechanism this number was always meant to
+be routed through.
+
+**R-3 (2026-09-30, found while measuring R-2)** — `words_per_turn` caps **turn words only**: prose the
+writer reads as conversation. The candidate options and the session-close recap are exempt because
+they carry their own limits (≤18 words each; ≤6 bullets) and §3.1 *mandates* the recap, so counting
+it against the conversational budget makes the cap unsatisfiable on exactly the wrap-up turns §3.1
+requires — the same self-contradiction as finding I6. Cost if wrong: a close turn gets 160 words of
+cap plus an unbounded appendix; the appendix bounds are the control there, not the cap.

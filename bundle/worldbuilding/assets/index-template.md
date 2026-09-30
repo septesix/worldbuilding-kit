@@ -3,7 +3,7 @@ world: <kebab-name>
 sessions: 0
 last_date: <YYYY-MM-DD>
 tunables:
-  words_per_turn: 120
+  words_per_turn: 160
   texture_cadence: 4
   sarcasm: on
   weight_gap: 1.0

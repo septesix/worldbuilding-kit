@@ -85,10 +85,31 @@ kit(){
 }
 
 selftest_bad=0
+behavior(){
+  # opt-in only: needs run artifacts. Deliberately NOT in the all loop, so "all green" can never
+  # mean "the budget held" - it is checked by name: bash tests/check.sh behavior
+  local e n=0
+  for e in $(ls -1t "$REPO"/evidence/*-skill-*.md 2>/dev/null); do n=$((n+1)); done
+  [ "$n" = 0 ] && { echo "  skip  behavior: no skill runs recorded yet"; return; }
+  local lim; lim=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$B/assets/index-template.md")
+  local rc=0
+  python3 "$B/tests/wordcount.py" $(ls -1t "$REPO"/evidence/*-skill-*.md | head -8) "${lim:-160}" || rc=$?
+  case $rc in
+    0) ok "recorded skill turns within ${lim} turn words and their appendix limits";;
+    1) no "a recorded turn exceeds the ${lim}-word TURN cap";;
+    2) no "turn words are within ${lim}; an APPENDIX limit is breached (options ≤18 words, recap ≤6 bullets)";;
+    3) no "both the turn cap and an appendix limit are breached";;
+    *) no "wordcount.py could not run (rc=$rc)";;
+  esac
+}
+
 meta(){
   # a check that exists but is not in the all-loop is a silent exclusion (it happened once)
-  local defined run
-  defined=$(grep -oE '^[a-z]+\(\)\{' "$0" | sed 's/[(){]//g' | grep -vE '^(ok|no|ck|has|newest|pil|selftest|meta)$' | sort -u)
+  local defined run optin
+  # behavior is a deliberate opt-in: it needs run artifacts, so "all green" must never be read as
+  # "the word budget held". Exempting a name here is a decision, made visible.
+  optin='^(behavior)$'
+  defined=$(grep -oE '^[a-z]+\(\)\{' "$0" | sed 's/[(){]//g' | grep -vE '^(ok|no|ck|has|newest|pil|selftest|meta)$' | grep -vE "$optin" | sort -u)
   run=$(sed -n '/for f in /s/.*for f in \([a-z ]*\);.*/\1/p' "$0" | tr ' ' '\n' | sort -u | grep -v '^$')
   local missing; missing=$(comm -23 <(echo "$defined") <(echo "$run"))
   [ -z "$missing" ] && ok "every defined check runs in 'all'" || no "SILENTLY EXCLUDED from all: $(echo $missing)"
@@ -117,7 +138,7 @@ fixture(){
 }
 
 case "${1:-all}" in
-  harness) harness;; fixture) fixture;; templates) templates;; rubric) rubric;; voice) voice;;
+  harness) harness;; fixture) fixture;; behavior) behavior;; templates) templates;; rubric) rubric;; voice) voice;;
   method) method;; kit) kit;; selftest) selftest;;
   all)
     echo "[selftest]"; selftest; meta

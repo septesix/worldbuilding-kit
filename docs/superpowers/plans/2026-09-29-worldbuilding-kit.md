@@ -15,7 +15,7 @@
 - Skill names: lowercase `a-z0-9-` only, ≤64 chars. `kit` frontmatter name `worldbuilding-kit`; bundle name `worldbuilding`.
 - Both descriptions ≤1024 chars; kit description ≤35 words; bundle `metadata.version: 0.1.0`.
 - Word budgets: `kit/SKILL.md` <150 words; `bundle/worldbuilding/SKILL.md` <500 words; candidate options ≤18 words each; turn ≤`words_per_turn` (default 120).
-- Defaults for tunables, verbatim from spec §3.2: `words_per_turn: 120`, `texture_cadence: 4`, `sarcasm: on`, `weight_gap: 1.0`, `weight_hook: 1.0`, `weight_contradiction: 1.5`, `lopsidedness_floor: 0.6`.
+- Defaults for tunables, verbatim from spec §3.2: `words_per_turn: 160` (spec revision R-2; was 120), `texture_cadence: 4`, `sarcasm: on`, `weight_gap: 1.0`, `weight_hook: 1.0`, `weight_contradiction: 1.5`, `lopsidedness_floor: 0.6`.
 - The repo never contains world data. `world/` is created only at runtime inside a writing project.
 - Canon lines are append-only: changes add `revised:` and mark the old line `superseded-by:`; nothing is edited in place.
 - Entity kinds, exactly nine: `person · place · era · custom · conflict · institution · artifact · text · creature`.
@@ -101,7 +101,7 @@ The spec implies these, no task's happy path tests them. Each gets a pinned test
 - Consumes: fixture entity names from Task 1, pillar strings from Task 4.
 - Produces: the 4 voice rules, the warranted-sarcasm definition, the 5 engagement types (`consequence · contradiction · connection · cost · discovery`), the 3-consecutive-type switch rule, and a 3-turn worked transcript that is the calibration artifact and the Task 9 fixture.
 
-- [ ] **Step 1: Failing check** — transcript contains all four beats in order, is ≤120 words per beat-triple excluding options, options ≤18 words, and uses the fixture entities by name.
+- [ ] **Step 1: Failing check** — transcript contains all four beats in order, is ≤160 words per beat-triple excluding options, options ≤18 words, and uses the fixture entities by name.
 - [ ] **Step 2: Run, expect FAIL.**
 - [ ] **Step 3:** Write contract then transcript. Transcript is the only narrative content allowed in the bundle.
 - [ ] **Step 4: Run, expect PASS. Commit** `"feat: voice contract + worked transcript"`.
