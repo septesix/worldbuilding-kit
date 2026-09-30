@@ -32,6 +32,9 @@ COVERAGE = re.compile(r'^\|\s*([a-z][a-z-]+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|', re
 # "scores 3.0" down to "scores 3" to dodge its own guard, and reported a compliant line as bare.
 GAP_LABELED = re.compile(r'gap(?:_weight)?\s*(\d+)\s*(?:\u00d7|x)', re.I)
 GAP_IMPLIED = re.compile(r'(\d+)\s*(?:\u00d7|x)\s*[\d.]+\s*\+', re.I)
+# a disclosed-looking `gap 3` with no factors is the form I7's wrong arithmetic actually travelled in,
+# so it is audited for value even though it fails the disclosure rule
+GAP_MENTION = re.compile(r'gap(?:_weight)?\s*(\d+)', re.I)
 SHOWS_SCORE = re.compile(r'\bscore(?:d|s)?\b|\bscores\b', re.I)
 
 
@@ -233,7 +236,9 @@ def main():
             g = GAP_LABELED.search(l) or GAP_IMPLIED.search(l)
             if not g:
                 bad.append('bare score, no terms (show gap x weight + hook x weight + contradiction x weight)')
-                rc |= 2; continue
+                rc |= 2
+                g = GAP_MENTION.search(l)          # still worth auditing the number it did give
+                if not g: continue
             if hit[0] in TABLE:
                 entries, est = TABLE[hit[0]]
                 want = gap_scale(entries, est)

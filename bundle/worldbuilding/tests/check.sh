@@ -556,6 +556,11 @@ L
     && ok "selftest: a score with no terms is flagged, not admired" \
     || no "selftest: 'scores highest' passed as evidence (rc=$rc) - the disclosure rule is decorative"
 
+  score_ev "$TMP/s4.md" terms 3; python3 "$B/tests/invariants.py" "$TMP/s4.md" >"$TMP/s4.out" 2>&1; rc=$?
+  { [ $((rc & 2)) = 2 ] && grep -q 'gap_weight 3 contradicts index' "$TMP/s4.out"; } \
+    && ok "selftest: an undisciplined 'gap 3' is still checked against the table" \
+    || no "selftest: value-only disclosure escapes the audit (rc=$rc) - I7's real form is unguarded"
+
   # regression witness, on evidence rather than synthetic input: two runs the old fixture-only check
   # certified as canon-clean did `rm encyclopedia/lighthouse-place.md` mid-session. If the detector ever
   # drifts back to blindness, this fails on real transcripts, not just on my hand-built ones.
