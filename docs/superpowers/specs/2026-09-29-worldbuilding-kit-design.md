@@ -219,7 +219,7 @@ forces a switch.** `review` reports the distribution.
   log.md                    # append-only session recaps
 ```
 
-- **`index.md`** — frontmatter (`world`, `skill_version`, `sessions`, `last_date`, `tunables`),
+- **`index.md`** — frontmatter (`world`, `sessions`, `last_date`, `tunables`) — see revision R-1, no version field lives here,
   then within the first 60 lines: pillar table (counts + thin/thick), entity registry (slug ·
   kind · pillars · status · hooks, one line each), texture digest, top-5 hottest threads. Never
   authoritative over entity bodies; rebuilt from them if missing or stale.
@@ -299,3 +299,12 @@ content packs · prose generation · multi-writer sync or hosting · any app, se
 | `bundle/worldbuilding/assets/*-template.md` | index / entity / threads |
 | `bundle/worldbuilding/tests/` | 3 scenarios + scorecard |
 | world data | created at runtime in `<project_root>/world/`, never in this repo |
+
+## Revisions
+
+**R-1 (2026-09-30, gate finding I-follow-up)** — Dropped `skill_version` from `world/index.md`. The
+kit's upgrade offer compares an installed version against the bundle's; with the marker in `world/`
+the comparison read a file the worldbuilding skill rewrites during ordinary work, and a control run
+was observed setting it to `0.1.0` unprompted. `metadata.version` in each `SKILL.md` is now the only
+version source, in a file the skill never writes. Cost of being wrong: a stale `world/` copy could
+mask an available upgrade, or a completed session could announce one.

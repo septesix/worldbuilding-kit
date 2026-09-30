@@ -71,7 +71,7 @@ The spec implies these, no task's happy path tests them. Each gets a pinned test
 - Create: `bundle/worldbuilding/assets/index-template.md`, `assets/entity-template.md`, `assets/threads-template.md`
 
 **Interfaces:**
-- Produces exact section names Tasks 4–6 key off: index frontmatter keys (`world`, `skill_version`, `sessions`, `last_date`, `tunables`), index sections `## Pillar coverage`, `## Entities`, `## Texture digest`, `## Hottest threads` (tables within the first 60 lines); entity sections `## Canon`, `## Open questions`, `## Links` with `established:` / `proposed:` / `revised:` / `superseded-by:` line prefixes; thread fields `status:`, `asked-by:`, `pillars:`, `hook:`, `spawned:`.
+- Produces exact section names Tasks 4–6 key off: index frontmatter keys (`world`, `sessions`, `last_date`, `tunables`) — no version field, per spec revision R-1, index sections `## Pillar coverage`, `## Entities`, `## Texture digest`, `## Hottest threads` (tables within the first 60 lines); entity sections `## Canon`, `## Open questions`, `## Links` with `established:` / `proposed:` / `revised:` / `superseded-by:` line prefixes; thread fields `status:`, `asked-by:`, `pillars:`, `hook:`, `spawned:`.
 `tests/` scripts are development fixtures only: nothing in the shipped skill body may reference them, and Task 7 strips them at install time (`cp -R` then `rm -rf <target>/tests`).
 
 - [ ] **Step 1: Failing check** — `check.sh`: a template-scaffolded `world/` must satisfy `grep -c '^## Pillar coverage' == 1`, index tables inside 60 lines, all 11 world + 7 character pillar rows present, all nine kinds listed in `entity-template.md`.

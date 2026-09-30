@@ -5,14 +5,15 @@ description: Use when the user wants to build, extend, or resume a fictional wor
 
 # Worldbuilding kit (installer)
 
-Installs the real skill into this project, then gets out of the way.
+Installs the real skill, then hands off. Bundle = `../bundle/worldbuilding` beside this file's
+`readlink -f` directory.
 
-1. `project_root` = nearest ancestor holding `.git`, else CWD.
-2. If CWD is `$HOME`, or holds neither `.git` nor `world/`: **do not scaffold.** Ask which folder
-   holds the manuscript. If told "here", echo the absolute path and confirm once.
-3. If `<CWD>/.pi/skills/worldbuilding/SKILL.md` is absent, copy it in from `../bundle/worldbuilding`
-   relative to this file's real directory (`readlink -f`), excluding `tests/`, after `mkdir -p
-   .pi/skills`. Say once that project skills now load from this repo.
-4. If present at a different `version`: offer the upgrade; replace only that folder, never `world/`.
-5. `read` `<CWD>/.pi/skills/worldbuilding/SKILL.md` and follow it from here; never re-install this
-   session.
+1. `project_root` = nearest `.git` ancestor, else CWD.
+2. If `project_root` is `$HOME`, or holds neither `.git` nor `world/`: **write nothing** — ask which
+   folder holds the manuscript, and confirm the path once if told "here".
+3. If `<CWD>/.pi/skills/worldbuilding/SKILL.md` is absent: `mkdir -p .pi/skills`, copy the bundle
+   excluding `tests/`, mention once that project skills now load from here.
+4. Versions come only from the two `SKILL.md` files, never `world/`:
+   `diff <(grep -m1 ' version:' BUNDLE) <(grep -m1 ' version:' INSTALLED)`. Differ → offer
+   upgrade, replacing only that folder.
+5. `read` the installed `SKILL.md`, follow it; never re-install this session.

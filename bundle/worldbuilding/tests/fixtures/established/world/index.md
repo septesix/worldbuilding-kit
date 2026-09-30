@@ -1,6 +1,5 @@
 ---
 world: nine bridges
-skill_version: 0.0.0
 sessions: 4
 last_date: 2026-09-12
 tunables:

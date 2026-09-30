@@ -1,6 +1,5 @@
 ---
 world: <kebab-name>
-skill_version: 0.1.0
 sessions: 0
 last_date: <YYYY-MM-DD>
 tunables:
