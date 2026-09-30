@@ -14,36 +14,41 @@ tunables:
 # Nine Bridges — encyclopedia index
 
 ## Pillar coverage
+
 | pillar | entries | established | proposed | status |
 |---|---|---|---|---|
-| geography-routes | 3 | 7 | 0 | substantial |
-| ecology-resources | 1 | 1 | 0 | thin |
+| geography-routes | 3 | 10 | 0 | substantial |
+| ecology-resources | 1 | 2 | 0 | thin |
 | history-periodisation | 1 | 2 | 1 | thin |
-| social-structure | 1 | 3 | 0 | thin |
-| power-systems | 1 | 3 | 0 | thin |
-| governance-law | 2 | 4 | 0 | substantial |
-| economy-trade | 1 | 3 | 0 | thin |
+| social-structure | 1 | 4 | 0 | substantial |
+| power-systems | 1 | 4 | 0 | substantial |
+| governance-law | 2 | 7 | 0 | substantial |
+| economy-trade | 1 | 3 | 0 | substantial |
 | faith-myth | 0 | 0 | 0 | empty |
-| language-names | 1 | 2 | 0 | thin |
+| language-names | 1 | 3 | 0 | substantial |
 | daily-life | 0 | 0 | 0 | empty |
-| conflicts-tensions | 2 | 4 | 0 | substantial |
-| want-vs-need | 1 | 1 | 0 | thin |
-| formative-past | 1 | 1 | 0 | thin |
-| relationships | 1 | 2 | 0 | thin |
-| contradictions | 1 | 1 | 0 | thin |
-| secrets | 1 | 2 | 0 | thin |
-| competence-failure | 1 | 1 | 0 | thin |
-| voice-attention | 1 | 1 | 0 | thin |
+| conflicts-tensions | 2 | 6 | 1 | substantial |
+| want-vs-need | 1 | 3 | 0 | substantial |
+| formative-past | 1 | 3 | 0 | substantial |
+| relationships | 1 | 5 | 0 | substantial |
+| contradictions | 1 | 3 | 0 | substantial |
+| secrets | 2 | 8 | 0 | substantial |
+| competence-failure | 1 | 5 | 0 | substantial |
+| voice-attention | 1 | 5 | 0 | substantial |
+
 
 ## Entities
+
 | slug | kind | pillars | status | hooks |
 |---|---|---|---|---|
-| nine-bridges-place | place | geography-routes, conflicts-tensions, social-structure | established | 4 |
-| lady-severin-person | person | want-vs-need, secrets, contradictions, formative-past | established | 3 |
-| tide-lock-artifact | artifact | power-systems, governance-law, geography-routes | established | 3 |
 | bridge-tolls-custom | custom | economy-trade, governance-law, language-names | established | 3 |
+| lady-severin-person | person | want-vs-need, secrets, contradictions, formative-past | established | 4 |
+| lockkeepers-daughter-person | person | relationships, competence-failure, voice-attention, secrets | established | 4 |
+| nine-bridges-place | place | geography-routes, conflicts-tensions, social-structure | established | 5 |
+| severins-child-place | place | geography-routes, ecology-resources | established | 2 |
+| tide-lock-artifact | artifact | power-systems, governance-law, geography-routes | established | 4 |
 | war-of-nine-ledgers-era | era | history-periodisation, conflicts-tensions | mixed | 2 |
-| severins-child-place | place | geography-routes, ecology-resources | established | 1 |
+
 
 ## Texture digest
 - (nothing yet: no entry answers what anyone eats, carries, swears by, or mends)

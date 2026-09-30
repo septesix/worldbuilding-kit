@@ -14,4 +14,4 @@ revised: 2026-09-12
 ## Open questions
 - which three spans are unexplained (T-001, T-002)
 ## Links
-- [[tide-lock-artifact]] [[bridge-tolls-custom]] [[severins-child-place]] [[lady-severin-person]]
+- [[tide-lock-artifact]] [[bridge-tolls-custom]] [[severins-child-place]] [[lady-severin-person]] [[lockkeepers-daughter-person]]

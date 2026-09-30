@@ -13,4 +13,4 @@ revised: 2026-09-06
 ## Open questions
 - whom she disagreed with, and what the argument was (T-010)
 ## Links
-- [[bridge-tolls-custom]] [[tide-lock-artifact]] [[nine-bridges-place]]
+- [[bridge-tolls-custom]] [[tide-lock-artifact]] [[nine-bridges-place]] [[lockkeepers-daughter-person]]

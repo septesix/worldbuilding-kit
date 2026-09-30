@@ -96,8 +96,19 @@ selftest(){
   [ "$selftest_bad" = 1 ] && no "selftest: ck does not assert (it passed or failed the wrong comparison)" || ok "selftest: ck asserts correctly (0 vs 1 fails; 1 vs 1 and 18 vs 18 pass)"
 }
 
+fixture(){
+  # I12: derived tables must equal what the entity files imply. scoreboard.py owns the counting rule.
+  if python3 "$B/tests/scoreboard.py" "$B/tests/fixtures/established/world" --diff >/tmp/fx.$$ 2>&1; then
+    ok "fixture index agrees with its entity files"
+  else
+    no "fixture index drifts from the files (I12): $(grep -c 'index' /tmp/fx.$$) rows"; sed 's/^/       /' /tmp/fx.$$ | head -6
+  fi; rm -f /tmp/fx.$$
+  local d; d=$(grep -rl 'lockkeepers-daughter' "$B/tests/fixtures/established/world" | wc -l)
+  [ "$d" -ge 3 ] && ok "the daughter the log claims is a real entity ($d files reference her)" || no "log.md canon still unbacked ($d files)"
+}
+
 case "${1:-all}" in
-  harness) harness;; templates) templates;; rubric) rubric;; voice) voice;;
+  harness) harness;; fixture) fixture;; templates) templates;; rubric) rubric;; voice) voice;;
   method) method;; kit) kit;; selftest) selftest;;
   all)
     echo "[selftest]"; selftest

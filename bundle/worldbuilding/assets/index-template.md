@@ -13,7 +13,13 @@ tunables:
 ---
 # <World title> — encyclopedia index
 
-Derived from `encyclopedia/*.md`. If counts disagree with the entity files, rebuild from them.
+Derived from `encyclopedia/*.md`. If counts disagree with the entity files, rebuild from them —
+the entity files are authoritative, never this table.
+
+Counting rule: `entries` = files whose `pillars[]` name the pillar; `established` = `- established:`
+bullets in those files, excluding any carrying `supersedes`; `proposed` = `- proposed:` bullets;
+`status` = empty | all-proposed | thin (<3 established) | substantial. Per entity, `hooks` = inbound
+`[[slug]]` links from other files.
 
 ## Pillar coverage
 | pillar | entries | established | proposed | status |
