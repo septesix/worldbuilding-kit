@@ -85,18 +85,35 @@ kit(){
 }
 
 selftest_bad=0
+multi(){
+  # opt-in: needs multi-turn artifacts. Same reason as behavior - green static checks must never be
+  # read as "the cadence and read-budget invariants hold".
+  local bh all sel
+  bh=$(git -C "$REPO" rev-parse "HEAD:bundle" 2>/dev/null | cut -c1-8)
+  all=$(ls -1t "$REPO"/evidence/*-multi-*.md 2>/dev/null)
+  [ -z "$all" ] && { echo "  skip  multi: no multi-turn runs recorded"; return; }
+  sel=$(grep -l "bundle=$bh" $all 2>/dev/null | head -4)
+  [ -z "$sel" ] && { echo "  skip  multi: no multi-turn evidence from bundle $bh"; return; }
+  local rc=0
+  for f in $sel; do python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?)); done
+  [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
+    || no "multi-turn invariant breached (codes: $rc - 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation)"
+}
+
 behavior(){
   # opt-in only: needs run artifacts. Deliberately NOT in the all loop, so "all green" can never
   # mean "the budget held" - it is checked by name: bash tests/check.sh behavior
-  local head all sel tot nsel lim rc
+  local head bh all sel tot nsel lim rc
   head=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)
+  bh=$(git -C "$REPO" rev-parse "HEAD:bundle" 2>/dev/null | cut -c1-8)
   all=$(ls -1t "$REPO"/evidence/*-skill-*.md 2>/dev/null)
   [ -z "$all" ] && { echo "  skip  behavior: no skill runs recorded yet"; return; }
   # only transcripts labelled with this build count as evidence about it
-  sel=$(grep -l "commit=$head" $all 2>/dev/null | head -8)
+  # keyed to the BUNDLE tree hash: a docs-only commit must not void behavioral evidence
+  sel=$(grep -l "bundle=$bh" $all 2>/dev/null | head -8)
   tot=$(echo "$all" | grep -c .); nsel=$(printf '%s\n' "$sel" | grep -c '[^[:space:]]')
   if [ "$nsel" = 0 ]; then
-    echo "  skip  behavior: none of the $tot skill transcripts were produced by $head - re-run the scenarios to grade this build"
+    echo "  skip  behavior: none of the $tot skill transcripts were produced by bundle $bh (HEAD $head) - re-run the scenarios to grade this build"
     return
   fi
   [ "$nsel" != "$tot" ] && echo "  note  behavior: grading $nsel of $tot transcripts ($((tot-nsel)) belong to other builds; their 'label:' line says which)"
@@ -117,24 +134,120 @@ meta(){
   local defined run optin
   # behavior is a deliberate opt-in: it needs run artifacts, so "all green" must never be read as
   # "the word budget held". Exempting a name here is a decision, made visible.
-  optin='^(behavior)$'
+  optin='^(behavior|multi)$'
   defined=$(grep -oE '^[a-z]+\(\)\{' "$0" | sed 's/[(){]//g' | grep -vE '^(ok|no|ck|has|newest|pil|selftest|meta)$' | grep -vE "$optin" | sort -u)
   run=$(sed -n '/for f in /s/.*for f in \([a-z ]*\);.*/\1/p' "$0" | tr ' ' '\n' | sort -u | grep -v '^$')
   local missing; missing=$(comm -23 <(echo "$defined") <(echo "$run"))
   [ -z "$missing" ] && ok "every defined check runs in 'all'" || no "SILENTLY EXCLUDED from all: $(echo $missing)"
 }
 
+# Instrument self-tests — appended to check.sh's selftest()
 selftest(){
-  # the ck helper must actually assert; it previously compared its own expected
-  # argument to 1, which made every count assertion vacuous or unsatisfiable
-  local p f; p=$PASS; f=$FAIL
-  PASS=0; FAIL=0; ck 0 1 probe >/dev/null; [ "$FAIL" = 1 ] || selftest_bad=1
-  PASS=0; FAIL=0; ck 1 1 probe >/dev/null; [ "$PASS" = 1 ] || selftest_bad=1
-  PASS=0; FAIL=0; ck 18 18 probe >/dev/null; [ "$PASS" = 1 ] || selftest_bad=1
-  PASS=$p; FAIL=$f
-  [ "$selftest_bad" = 1 ] && no "selftest: ck does not assert (it passed or failed the wrong comparison)" || ok "selftest: ck asserts correctly (0 vs 1 fails; 1 vs 1 and 18 vs 18 pass)"
-}
+  # NOTE: probes must NOT save-and-restore the counters - an earlier draft did, so every red probe
+  # printed a failure that was then erased from the total and the exit status. Helper-behaviour
+  # probes run in subshells instead, so their intentional FAIL never reaches the suite total.
+  local rc TMP; selftest_bad=0
+  ( ck 0 1 probe >/dev/null; [ "$FAIL" = 1 ] ) || selftest_bad=1
+  ( PASS=0 FAIL=0; ck 1 1 probe >/dev/null; [ "$PASS" = 1 ] ) || selftest_bad=1
+  ( PASS=0 FAIL=0; ck 18 18 probe >/dev/null; [ "$PASS" = 1 ] ) || selftest_bad=1
+  [ "$selftest_bad" = 1 ] && no "selftest: ck does not assert (wrong comparison passed or failed)" || ok "selftest: ck asserts correctly"
 
+  # has() must go both ways, and newest() must honour the variant it was asked for
+  TMP=$(mktemp -d); printf 'alpha\nbeta gamma\n' > "$TMP/f"
+  ( PASS=0 FAIL=0; has present "$TMP/f" 'beta.*gamma' >/dev/null; [ "$PASS" = 1 ] && [ "$FAIL" = 0 ] ) && ok "selftest: has() detects a match" || no "selftest: has() cannot report a match"
+  ( PASS=0 FAIL=0; has absent "$TMP/f" 'zzz-not-present' >/dev/null; [ "$FAIL" = 1 ] ) && ok "selftest: has() fails on no match" || no "selftest: has() is vacuous (passes anything)"
+  local nc ns; nc=$(newest continue-established control); ns=$(newest continue-established skill)
+  case "$nc" in *-control-*.md) ok "selftest: newest() honours 'control'";; *) no "selftest: newest() ignored the control variant ($nc)";; esac
+  case "$ns" in *-skill-*.md) ok "selftest: newest() honours 'skill'";; *) no "selftest: newest() ignored the skill variant ($ns)";; esac
+
+  # scoreboard.py must fail a mutated index, in two distinct ways
+  local W="$TMP/world"; cp -R "$B/tests/fixtures/established/world" "$W"
+  python3 "$B/tests/scoreboard.py" "$W" --diff >/dev/null 2>&1; rc=$?
+  [ "$rc" = 0 ] && ok "selftest: scoreboard accepts a faithful index" || no "selftest: scoreboard rejects the clean fixture (rc=$rc) - it cannot be trusted"
+  sed -i 's/^| geography-routes | 3 |/| geography-routes | 99 |/' "$W/index.md"
+  python3 "$B/tests/scoreboard.py" "$W" --diff >/dev/null 2>&1; rc=$?
+  [ "$rc" != 0 ] && ok "selftest: scoreboard catches a wrong count" || no "selftest: scoreboard MISSES a wrong count (vacuous gate)"
+  cp -R "$B/tests/fixtures/established/world" "$W" && sed -i '/^| pillar | entries/d' "$W/index.md"
+  python3 "$B/tests/scoreboard.py" "$W" --diff >/dev/null 2>&1; rc=$?
+  [ "$rc" != 0 ] && ok "selftest: scoreboard catches a dropped table header" || no "selftest: scoreboard MISSES a missing header (vacuous gate)"
+
+  # invariants.py must pass a genuinely valid 5-turn run and catch each breach. Files are built by
+  # python, not sed: an earlier draft did open(p,'w').write(open(p).read()...), which truncated the
+  # file before reading it, so the probe was asserting on an empty transcript.
+  local rc; rc=0
+  build_ev(){
+    python3 - "$1" "$2" "$3" <<'L'
+import sys
+path, mode, sess = sys.argv[1], sys.argv[2], sys.argv[3]
+tg = ['history-periodisation', 'politics-power', 'geography-routes', 'daily-life', 'voice-attention']
+pv = ['connection', 'constraint', 'cost', 'consequence', 'stake']
+out = ['# x (skill) MULTI',
+       'label: commit=deadbe bundle=abcd1234 spec_rev=R-3 words_per_turn=160 texture_cadence=4']
+for i in range(5):
+    t, p = tg[i], pv[i]
+    if mode == 'same-pillar': t = 'geography-routes'
+    if mode == 'no-texture':  t = ['history-periodisation', 'politics-power', 'geography-routes',
+                                   'institutions-law', 'ecology-resources'][i]
+    if mode == 'provoked-repeat': p = 'connection'
+    q = '**Question.** Which crossing is oldest?'
+    if mode == 'double-question' and i == 2: q = '**Question.** Which crossing is oldest? And which is widest?'
+    body = '**Digest.** ok.'
+    if mode == 'long-turn' and i == 1: body = '**Digest.** ' + 'word ' * 200
+    out += [f'## turn {i+1}', 'writer: an answer', body, f'**Target.** {t}.',
+            f'**Stop.** `provoked: {p}`', q, '- steady — one two three', '']
+open(path, 'w').write('\n'.join(out) + '## files after run\n')
+if int(sess):
+    n = int(sess)
+    recs = []
+    for i in range(5):
+        recs.append('{"type":"message","message":{"role":"user","content":[]}}')
+        calls = [{'type': 'toolCall', 'name': 'read', 'arguments': {'path': f'world/encyclopedia/x{j}.md'}}
+                 for j in range(n)]
+        recs.append('{"type":"message","message":{"role":"assistant","content":%s}}' % __import__('json').dumps(calls))
+    open(path + '.session.jsonl', 'w').write('\n'.join(recs) + '\n')
+
+L
+  }
+  crash(){ [ $(( $1 & 64 )) = 0 ] || { no "selftest: invariants.py CRASHED (rc=$1) - a broken tool, not a finding"; return 1; }; return 0; }
+  rm -f "$TMP"/*.session.jsonl
+  build_ev "$TMP/a.md" ok 2; rc=0; python3 "$B/tests/invariants.py" "$TMP/a.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ "$rc" = 0 ] && ok "selftest: invariants accepts a valid 5-turn run" || no "selftest: invariants rejects a valid run (rc=$rc) - untrustworthy"
+  build_ev "$TMP/b.md" double-question 2; python3 "$B/tests/invariants.py" "$TMP/b.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 4)) = 4 ] && ok "selftest: invariants catches two questions in one turn" || no "selftest: invariants MISSES a double question (rc=$rc)"
+  build_ev "$TMP/c.md" long-turn 2; python3 "$B/tests/invariants.py" "$TMP/c.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 1)) = 1 ] && ok "selftest: invariants catches an over-budget turn" || no "selftest: invariants MISSES an over-budget turn (rc=$rc)"
+  build_ev "$TMP/d.md" provoked-repeat 2; python3 "$B/tests/invariants.py" "$TMP/d.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 32)) = 32 ] && ok "selftest: invariants catches 3 identical provoked types" || no "selftest: invariants MISSES a provoked repeat (rc=$rc)"
+  build_ev "$TMP/e.md" same-pillar 2; python3 "$B/tests/invariants.py" "$TMP/e.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 32)) = 32 ] && ok "selftest: invariants catches one pillar 3 turns running" || no "selftest: invariants MISSES lopsidedness (rc=$rc)"
+  build_ev "$TMP/f.md" no-texture 2; python3 "$B/tests/invariants.py" "$TMP/f.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 16)) = 16 ] && ok "selftest: invariants catches texture never asked within cadence" || no "selftest: invariants MISSES a cadence breach (rc=$rc)"
+  build_ev "$TMP/g.md" ok 4; python3 "$B/tests/invariants.py" "$TMP/g.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: invariants catches a 4th entity read in one turn" || no "selftest: invariants MISSES the read budget (rc=$rc)"
+  # regression: the last turn's chunk used to run to end-of-file and absorb the whole "## world/
+  # contents" dump (~2000 words), which read as one gigantic turn rather than a parsing bug.
+  build_ev "$TMP/i.md" ok 2; printf '## files after run\n## world/ contents\n%s\n' "$(yes filler | head -2500 | tr '\n' ' ')" >> "$TMP/i.md"
+  python3 "$B/tests/invariants.py" "$TMP/i.md" > "$TMP/i.out" 2>&1; rc=$?
+  crash $rc && [ "$rc" = 0 ] && ! grep -qE 'turn 5: *[0-9]{4}w' "$TMP/i.out" && ok "selftest: trailing world/ dump stays out of the last turn" || no "selftest: file tail leaks into turn words (rc=$rc)"
+  build_ev "$TMP/h.md" ok 0; python3 "$B/tests/invariants.py" "$TMP/h.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: no session log reads UNKNOWN, never silent" || no "selftest: invariants PASSes with no session log (rc=$rc)"
+  rm -f "$TMP"/*.session.jsonl
+  # wordcount.py must fail on each thing it claims to measure, and skip what it cannot see
+  { echo "# x"; echo '## transcript'; echo "body words here"; echo "- steady — $(yes word | head -26 | tr '\n' ' ')"; echo '## files after run'; } > "$TMP/opt.md"
+  python3 "$B/tests/wordcount.py" "$TMP/opt.md" 160 >/dev/null 2>&1; rc=$?
+  [ "$((rc & 2))" = 2 ] && ok "selftest: wordcount catches a long option (rc=$rc)" || no "selftest: wordcount MISSES a long option (rc=$rc)"
+  { echo "# x"; echo '## transcript'; yes word | head -240 | tr '\n' ' '; echo; echo '## files after run'; } > "$TMP/turn.md"
+  python3 "$B/tests/wordcount.py" "$TMP/turn.md" 160 >/dev/null 2>&1; rc=$?
+  [ "$((rc & 1))" = 1 ] && ok "selftest: wordcount catches an over-budget turn (rc=$rc)" || no "selftest: wordcount MISSES an over-budget turn (rc=$rc)"
+  { echo "# x"; echo '## transcript'; echo; echo '## files after run'; } > "$TMP/empty.md"
+  python3 "$B/tests/wordcount.py" "$TMP/empty.md" 160 >"$TMP/empty.out" 2>&1; rc=$?
+  { [ "$rc" = 0 ] && grep -q skip "$TMP/empty.out"; } && ok "selftest: wordcount skips an aborted run instead of passing it" || no "selftest: wordcount scored an aborted run (rc=$rc)"
+  { echo "# x"; echo '## transcript'; echo '- steady — one two three'; echo "- sharp — $(yes word | head -22 | tr '\n' ' ')"; echo '## files after run'; } > "$TMP/both.md"
+  python3 "$B/tests/wordcount.py" "$TMP/both.md" 160 >/dev/null 2>&1
+  [ $? = 2 ] && ok "selftest: wordcount separates turn from appendix failures" || no "selftest: wordcount cannot say which limit rang"
+
+  rm -rf "$TMP"
+}
 fixture(){
   # I12: derived tables must equal what the entity files imply. scoreboard.py owns the counting rule.
   if python3 "$B/tests/scoreboard.py" "$B/tests/fixtures/established/world" --diff >/tmp/fx.$$ 2>&1; then
