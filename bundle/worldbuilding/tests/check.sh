@@ -89,11 +89,11 @@ multi(){
   # opt-in: needs multi-turn artifacts. Same reason as behavior - green static checks must never be
   # read as "the cadence and read-budget invariants hold".
   local bh all sel
-  bh=$(git -C "$REPO" rev-parse "HEAD:bundle" 2>/dev/null | cut -c1-8)
+  bh=$(guidance_key)
   all=$(ls -1t "$REPO"/evidence/*-multi-*.md 2>/dev/null)
   [ -z "$all" ] && { echo "  skip  multi: no multi-turn runs recorded"; return; }
-  sel=$(grep -l "bundle=$bh" $all 2>/dev/null | head -4)
-  [ -z "$sel" ] && { echo "  skip  multi: no multi-turn evidence from bundle $bh"; return; }
+  sel=$(grep -l "guidance=$bh" $all 2>/dev/null | head -4)
+  [ -z "$sel" ] && { echo "  skip  multi: no multi-turn evidence from guidance key $bh"; return; }
   local rc=0 f
   for f in $sel; do
     grep -q '^CANON-LOSS' "$f" && { echo "   canon files deleted during $(basename "$f") - append-only breached (world/ files may be added, never removed)"; rc=$((rc | 128)); }
@@ -109,15 +109,15 @@ behavior(){
   # mean "the budget held" - it is checked by name: bash tests/check.sh behavior
   local head bh all sel tot nsel lim rc
   head=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)
-  bh=$(git -C "$REPO" rev-parse "HEAD:bundle" 2>/dev/null | cut -c1-8)
+  bh=$(guidance_key)
   all=$(ls -1t "$REPO"/evidence/*-skill-*.md 2>/dev/null)
   [ -z "$all" ] && { echo "  skip  behavior: no skill runs recorded yet"; return; }
   # only transcripts labelled with this build count as evidence about it
   # keyed to the BUNDLE tree hash: a docs-only commit must not void behavioral evidence
-  sel=$(grep -l "bundle=$bh" $all 2>/dev/null | head -8)
+  sel=$(grep -l "guidance=$bh" $all 2>/dev/null | head -8)
   tot=$(echo "$all" | grep -c .); nsel=$(printf '%s\n' "$sel" | grep -c '[^[:space:]]')
   if [ "$nsel" = 0 ]; then
-    echo "  skip  behavior: none of the $tot skill transcripts were produced by bundle $bh (HEAD $head) - re-run the scenarios to grade this build"
+    echo "  skip  behavior: none of the $tot skill transcripts carry guidance key $bh (HEAD $head) - re-run the scenarios to grade this build"
     return
   fi
   [ "$nsel" != "$tot" ] && echo "  note  behavior: grading $nsel of $tot transcripts ($((tot-nsel)) belong to other builds; their 'label:' line says which)"
@@ -146,6 +146,12 @@ meta(){
 }
 
 # Instrument self-tests — appended to check.sh's selftest()
+guidance_key(){
+  # hash ONLY what the model reads - SKILL.md, references/, assets/. An earlier version hashed all of
+  # bundle/, so a test-only edit "invalidated" behavioural evidence about guidance that had not moved.
+  git -C "$REPO" rev-parse HEAD:bundle/worldbuilding/SKILL.md HEAD:bundle/worldbuilding/references \
+    HEAD:bundle/worldbuilding/assets 2>/dev/null | tr -d '\n' | cksum | awk '{printf "%08x", $1}'
+}
 selftest(){
   # NOTE: probes must NOT save-and-restore the counters - an earlier draft did, so every red probe
   # printed a failure that was then erased from the total and the exit status. Helper-behaviour
@@ -264,7 +270,7 @@ fixture(){
 }
 
 case "${1:-all}" in
-  harness) harness;; fixture) fixture;; behavior) behavior;; templates) templates;; rubric) rubric;; voice) voice;;
+  harness) harness;; fixture) fixture;; behavior) behavior;; multi) multi;; templates) templates;; rubric) rubric;; voice) voice;;
   method) method;; kit) kit;; selftest) selftest;;
   all)
     echo "[selftest]"; selftest; meta

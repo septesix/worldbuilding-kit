@@ -19,16 +19,23 @@ CLEAN=(env -u PI_API_KEY -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT 
 args=(--no-extensions --no-skills --no-session)
 [ "$VAR" = skill ] && if [ "$SCEN" = home-dir ]; then args+=(--skill "$REPO/kit"); else args+=(--skill "$REPO/bundle/worldbuilding"); fi
 RUN_TIMEOUT="${RUN_TIMEOUT:-900}"
+guidance_key(){
+  # hash ONLY what the model reads - SKILL.md, references/, assets/. An earlier version hashed all of
+  # bundle/, so a test-only edit "invalidated" behavioural evidence about guidance that had not moved.
+  git -C "$REPO" rev-parse HEAD:bundle/worldbuilding/SKILL.md HEAD:bundle/worldbuilding/references \
+    HEAD:bundle/worldbuilding/assets 2>/dev/null | tr -d '\n' | cksum | awk '{printf "%08x", $1}'
+}
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-$STAMP.md"; mkdir -p "$REPO/evidence"
 # provenance: which build produced this verdict. Without it, behavior() grades a pile of eras and
 # a stale transcript can pass or fail for reasons the current code no longer has.
 COMMIT="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 [ -n "$(git -C "$REPO" status --porcelain 2>/dev/null)" ] && COMMIT="$COMMIT+dirty"
+BHASH="$(guidance_key)"
 SPECREV="$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md 2>/dev/null | tail -1 | tr -d '*')"
 WPT=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md" 2>/dev/null)
 CAD=$(awk '/texture_cadence/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md" 2>/dev/null)
 LIMITS="words_per_turn=${WPT:-?} texture_cadence=${CAD:-?}"
-LABEL="commit=${COMMIT} spec_rev=${SPECREV:-R-0} ${LIMITS}"
+LABEL="commit=${COMMIT} guidance=${BHASH} spec_rev=${SPECREV:-R-0} ${LIMITS}"
 { echo "# $SCEN ($VAR) $STAMP"; echo "cwd: $WORK"; echo "label: $LABEL"
   echo "## prompt"; cat "$HERE/prompts/$SCEN.txt"
   echo "## transcript"; ( cd "$WORK" && "${CLEAN[@]}" timeout "$RUN_TIMEOUT" pi "${args[@]}" -p "$(cat "$HERE/prompts/$SCEN.txt")" ); RC=$?

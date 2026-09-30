@@ -31,16 +31,22 @@ args=(--no-extensions --no-skills)
 CLEAN=(env -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u PI_PROVIDER -u PI_REASONING_LEVEL -u PI_API_KEY HOME="$FAKEHOME")
 
 EMPTY=""
+guidance_key(){
+  # hash ONLY what the model reads - SKILL.md, references/, assets/. An earlier version hashed all of
+  # bundle/, so a test-only edit "invalidated" behavioural evidence about guidance that had not moved.
+  git -C "$REPO" rev-parse HEAD:bundle/worldbuilding/SKILL.md HEAD:bundle/worldbuilding/references \
+    HEAD:bundle/worldbuilding/assets 2>/dev/null | tr -d '\n' | cksum | awk '{printf "%08x", $1}'
+}
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-multi-$STAMP.md"; mkdir -p "$REPO/evidence"
 COMMIT="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 [ -n "$(git -C "$REPO" status --porcelain 2>/dev/null)" ] && COMMIT="$COMMIT+dirty"
 # keyed to the bundle's tree, not the repo HEAD: a docs-only commit must not void behavioral evidence
-BHASH="$(git -C "$REPO" rev-parse "HEAD:bundle" 2>/dev/null | cut -c1-8)"
+BHASH="$(guidance_key)"
 WPT=$(awk '/words_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md")
 CAD=$(awk '/texture_cadence/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/assets/index-template.md")
 
 { echo "# $SCEN ($VAR) MULTI-TURN $STAMP"
-  echo "label: commit=$COMMIT bundle=$BHASH spec_rev=$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md | tail -1 | tr -d '*') words_per_turn=${WPT:-?} texture_cadence=${CAD:-?}"
+  echo "label: commit=$COMMIT guidance=$BHASH spec_rev=$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md | tail -1 | tr -d '*') words_per_turn=${WPT:-?} texture_cadence=${CAD:-?}"
   echo "cwd: $WORK"; echo "turns: $N"
   for i in $(seq 0 $((N - 1))); do
     echo "## turn $((i + 1))"
