@@ -361,3 +361,18 @@ quality defects when they were artefacts of test size; `invariants.py` now measu
 tunable so a small world cannot generate false alarms and a large one cannot generate silence.
 Cost if wrong: a writer who reads `reads_per_turn` as a licence to open 3 files every turn. The
 tripwire wording in `SKILL.md` exists to keep it legible as a diagnostic.
+
+
+**Correction to R-5 / R-6 (2026-09-30, found after both were merged)** — F9 did not exist. The
+"reads per turn" figure in `invariants.py` counted every tool call touching `world/encyclopedia/`,
+including the 2-3 `edit` calls bookkeeping requires, plus `write` and `bash`. Recomputed against tool
+name `read` only, the four multi-turn runs on record read **0-2 entity bodies per turn**, always inside
+the cap - including the runs that motivated R-5 ("6 bodies") and R-6 ("5,4,4,2,4"). Both revisions were
+authored to fix a bug in the measuring instrument.
+
+Kept anyway, on their own merits and labelled as such: R-5 (count from `index.md`, read one body to
+quote) is what the runs were already doing, and is the only formulation that scales to the 300-entity
+case; R-6 (`reads_per_turn` as a named tunable) is the right shape for a scale guard. Neither is now
+supported by evidence of a breach, and neither may be cited as a fix for one. What the corrected
+instrument does still show at depth: `words_per_turn` breached by turns 1 and 4 of the last run
+(164, 169 against 160), and two candidate options over 18 words.

@@ -265,6 +265,45 @@ L
     || no "selftest: invariants scored targets it could not see (rc=$rc)"
   build_ev "$TMP/f.md" no-texture 2; python3 "$B/tests/invariants.py" "$TMP/f.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 16)) = 16 ] && ok "selftest: invariants catches texture never asked within cadence" || no "selftest: invariants MISSES a cadence breach (rc=$rc)"
+  # a write is not a read. Bookkeeping edits 2-3 entity files every turn; counting those as reads is
+  # what manufactured F9 and then two spec revisions went out to fix a bug in this file.
+  build_ev "$TMP/w.md" ok 1
+  python3 - "$TMP/w.md.session.jsonl" <<'L'
+import sys, json
+p = sys.argv[1]; recs = open(p).read().split('\n')
+out = []
+for r in recs:
+    if not r.strip(): continue
+    d = json.loads(r); m = d.get('message', {})
+    if m.get('role') == 'assistant':
+        m['content'] = ([{'type': 'toolCall', 'name': 'edit', 'arguments': {'path': 'world/encyclopedia/x%d.md' % i}}
+                         for i in range(4)]
+                        + [{'type': 'toolCall', 'name': 'write', 'arguments': {'path': 'world/encyclopedia/y.md'}}]
+                        + [{'type': 'toolCall', 'name': 'bash', 'arguments': {'command': 'grep -c . encyclopedia/*.md'}}])
+        r = json.dumps(d)
+    out.append(r)
+open(p, 'w').write('\n'.join(out) + '\n')
+L
+  python3 "$B/tests/invariants.py" "$TMP/w.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 8)) = 0 ] && ok "selftest: 4 edits + a write + bash do not count as reads" \
+    || no "selftest: the read tripwire counts writes as reads (rc=$rc) - F9 will come back"
+  build_ev "$TMP/g.md" ok 1
+  python3 - "$TMP/g.md.session.jsonl" <<'L'
+import sys, json
+p = sys.argv[1]; out = []
+for r in open(p).read().split('\n'):
+    if not r.strip(): continue
+    d = json.loads(r); m = d.get('message', {})
+    if m.get('role') == 'assistant':
+        m['content'] = [{'type': 'toolCall', 'name': 'read', 'arguments': {'path': 'world/encyclopedia/x%d.md' % i}} for i in range(4)]
+        r = json.dumps(d)
+    out.append(r)
+open(p, 'w').write('\n'.join(out) + '\n')
+L
+  python3 "$B/tests/invariants.py" "$TMP/g.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: 4 actual reads do trip the wire" \
+    || no "selftest: the read tripwire is blind to real reads (rc=$rc)"
+  rm -f "$TMP/g.md.session.jsonl"
   # reads are measured against reads_per_turn from the label, not a hardcoded constant
   build_ev "$TMP/g0.md" ok 4
   sed -i 's/texture_cadence=4$/texture_cadence=4 reads_per_turn=6/' "$TMP/g0.md"

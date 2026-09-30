@@ -46,8 +46,13 @@ def reads_per_turn(session_path):
         content = msg.get('content') or []
         if isinstance(content, list):
             for c in content:
-                if isinstance(c, dict) and c.get('type') in ('toolCall', 'tool_use', 'toolCall'):
-                    p = str((c.get('arguments') or c.get('input') or {}).get('path', ''))
+                if isinstance(c, dict) and c.get('type') in ('toolCall', 'tool_use'):
+                    # count READS only. Bookkeeping edits 2-3 entity files every turn, and an earlier
+                    # version bucketed edit/write/bash alongside read - which invented finding F9:
+                    # "6 bodies read in a turn" was 1 read and 5 writes to the same directory.
+                    if c.get('name') != 'read': continue
+                    a = c.get('arguments') or c.get('input') or {}
+                    p = str(a.get('path') or '')
                     if 'world/encyclopedia/' in p and cur is not None:
                         counts[cur] += 1
     return counts or None
