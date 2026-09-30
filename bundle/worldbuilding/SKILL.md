@@ -22,8 +22,9 @@ nearest wins; name the path.
 
 - **`new`**, no `world/` — one premise question; then scaffold `index.md`, `threads.md`, 5–8
   entity files from `assets/*-template.md`, all `proposed:`.
-- **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild and announce it. ≤ `reads_per_turn` bodies, else you score from files.
-- **`review`** — asked, or as bookkeeping says: the five-item memo (`references/rubric.md`).
+- **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild and announce it. ≤ `reads_per_turn` bodies, else you score from files. At ≥3 sessions since
+  `provoked: review`, end the turn with the memo.
+- **`review`** — asked, or as `continue` says: the five-item memo (`references/rubric.md`).
 
 ## The turn
 
@@ -56,8 +57,7 @@ Never the same pillar twice running when another scores
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
 `log.md` gets one machine line per turn: `- turn: <n> · provoked: <type> · targeted: <pillar>`; three
-of one type forces a switch, and at 3 sessions since the last `provoked: review`, end the turn with
-the memo. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
+of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
 `world/`; supersede in place. At close: 3–6 recap bullets.
 
 Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `beat_budget`, weights, floor)
