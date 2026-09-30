@@ -98,6 +98,11 @@ Worked example — `severins-child-place`, named by the writer mid-turn:
 - from *what adjacent thing has nobody mapped* → T-014 | who else is buried under the approach
 - from *what do people say about it when it breaks* → T-015 | what is said about it on the far bank
 
+- **Never dump tables into chat.** The index holds the counts; a turn that pastes a pillar table is
+  a report, not an interview.
+- **Candidates** are existing entities and the nine child generators below - not new inventions on the
+  spot, which is how a world acquires a fourteenth bridge.
+
 ## Hard rules (3)
 
 1. A question must be answerable in one sentence. If the answer needs a paragraph, that was two

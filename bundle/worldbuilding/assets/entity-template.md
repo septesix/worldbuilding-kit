@@ -13,7 +13,8 @@ revised: <YYYY-MM-DD>
 - revised: the toll is paid in grapes (2026-09-30, supersedes "the toll is a name, not coin")
 
 **Append only.** A retcon is a NEW line whose parenthetical quotes what it replaces. Never edit,
-reorder, delete, or annotate an existing bullet — no `superseded-by:` written into an old line,
+reorder, delete, or annotate an existing bullet (and never delete the **file**: a superseded entity
+stays on disk and `review` lists it as an orphan) — no `superseded-by:` written into an old line,
 because that annotation is itself the in-place edit this rule exists to prevent.
 
 ## Open questions

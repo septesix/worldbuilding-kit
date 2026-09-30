@@ -15,6 +15,12 @@ case "$SCEN" in
   home-dir) : ;;                             # non-project dir == the refuse-to-scaffold predicate
 esac
 [ "$SCEN" = stale-index ] && rm -f "$WORK/world/index.md"
+# only scenarios that started from the fixture have a "present at the start" witness; a run that began
+# in an empty dir would otherwise report every fixture file as deleted
+ORIG=""; case "$SCEN" in
+  established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup)
+    ORIG="$HERE/fixtures/established" ;;
+esac
 CLEAN=(env -u PI_API_KEY -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u PI_PROVIDER -u PI_REASONING_LEVEL HOME="$FAKEHOME")
 args=(--no-extensions --no-skills --no-session)
 [ "$VAR" = skill ] && if [ "$SCEN" = home-dir ]; then args+=(--skill "$REPO/kit"); else args+=(--skill "$REPO/bundle/worldbuilding"); fi
@@ -48,6 +54,11 @@ LABEL="commit=${COMMIT} guidance=${BHASH} spec_rev=${SPECREV:-R-0} ${LIMITS}"
   [ "$RC" = 0 ] || echo "INFRA-FAIL: pi exited nonzero (rc=$RC, timeout ${RUN_TIMEOUT}s)"
   [ "$TL" -gt 3 ] || echo "INFRA-FAIL: empty transcript ($TL lines)"
   echo "## files after run"; ( cd "$WORK" && find . -path ./.git -prune -o -type f -print | sort )
+  if [ -n "$ORIG" ]; then
+    python3 "$HERE/canoncheck.py" --dir "$WORK" --fixture "$ORIG" --transcript "$OUT"
+  else
+    python3 "$HERE/canoncheck.py" --dir "$WORK" --transcript "$OUT"
+  fi
   echo "## world/ contents"; ( cd "$WORK" && for f in $(find . -path "*world*" -name "*.md" -type f | sort); do echo "--- $f"; head -c 2500 "$f"; echo; done )
 } > "$OUT" 2>&1
 # exit contract: 0 usable run | 1 contaminated | 2 infrastructure failure | 3 both

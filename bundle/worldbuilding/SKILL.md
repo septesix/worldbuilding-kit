@@ -23,7 +23,7 @@ nearest wins; name the path.
 - **`new`**, no `world/` — scaffold `index.md`, `threads.md`, one file per entity from
   `assets/*-template.md`, all `proposed:`. Entity files, not prose fork-lists.
 - **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild from the files and
-  announce it. ≤ `reads_per_turn` bodies, else you are scoring from files. Never dump tables into chat.
+  announce it. ≤ `reads_per_turn` bodies, else you are scoring from files.
 - **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.
 
 ## The turn
@@ -43,7 +43,7 @@ nearest wins; name the path.
 1 = ≥3 across ≥2 entities · 0 = saturated. **hook_weight** = linked established entities 0–3, +1
 want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 
-Candidates are existing entities or children. Never the same pillar twice running when another scores
+Never the same pillar twice running when another scores
 ≥ `lopsidedness_floor`. If the last `texture_cadence` `targeted:` values name neither `daily-life` nor
 `voice-attention`, this turn is theirs.
 
@@ -56,7 +56,8 @@ Candidates are existing entities or children. Never the same pillar twice runnin
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
 `log.md` gets one machine line per turn: `- turn: <n> · provoked: <type> · targeted: <pillar>`; three
-of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only. At close: 3–6 recap bullets of what was decided, then the next thread.
+of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
+`world/`; supersede in place. At close: 3–6 recap bullets of what was decided, then the next thread.
 
 Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `beat_budget`, weights, floor)
 are read from `world/index.md` and edited there.

@@ -422,3 +422,14 @@ existed in a single SKILL.md sentence and is now stated in `references/rubric.md
 tunable; and a self-test that mutated `references/voice.md` without backing it up left test markers in
 shipped guidance across four runs while reporting a green round-trip - now guarded by a debris check
 and a documented-default-equals-real-default check.
+
+**R-11 (2026-09-30, gate finding F6)** — append-only applies to **files**, not only to lines. The
+encyclopedia may gain files and never lose one: a retired entity is superseded in place and shows up
+as an orphan in `review`. §2's promise was always that canon is history, but every check measured
+*lines* inside files, and two of the ten recorded sessions had already deleted an entity file
+(`rm encyclopedia/lighthouse-place.md`) without a single CANON-LOSS marker appearing. `tests/canoncheck.py`
+now witnesses three ways - the start state, every path seen during the run, and the session's own tool
+calls - and is wired into both harnesses. Cost if wrong: `world/encyclopedia/` accumulates files for
+entities the writer abandoned; mitigated because orphans were already a concept in `review`, and the
+alternative - silent disappearance of a named thing the writer once explained - is the one loss the
+encyclopedia cannot recover from.

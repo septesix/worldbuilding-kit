@@ -41,6 +41,18 @@ templates(){
   has "beat budget stated in the rubric" "$B/references/rubric.md" 'per-beat cap|beat_budget'
   has "beat budget is a tunable" "$T/index-template.md" 'beat_budget:'
   has "beat budget named in SKILL" "$B/SKILL.md" 'beat_budget'
+  has "append-only covers files, not just lines (F6)" "$B/SKILL.md" 'never delete one under'
+  has "entity template says the file survives (F6)" "$B/assets/entity-template.md" 'never delete the'
+  has "canoncheck wired into the single-turn harness" "$B/tests/run.sh" 'canoncheck'
+  has "canoncheck wired into the multi-turn harness" "$B/tests/multiturn.sh" 'canoncheck'
+  # a rule may live in SKILL or in references - what is not allowed is living in neither. SKILL alone
+  # is where rules go to die, because the word budget eventually trades them away: that is how the
+  # close trigger nearly left the kit entirely, and F6's neighbours already did.
+  local q homes
+  for q in 'dump tables into chat' 'existing entities and the nine child generators'; do
+    homes=$(grep -rl "$q" "$B/SKILL.md" "$B/references" 2>/dev/null | wc -l)
+    [ "$homes" -ge 1 ] && ok "rule survives somewhere: $q" || no "rule deleted from every file: $q"
+  done
   local t missing=0
   for t in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session; do
     n=$(grep -rl "$t" "$B/SKILL.md" "$B/references" "$B/assets" "$B/tests/fixtures/established/world/index.md" 2>/dev/null | wc -l)
@@ -462,6 +474,59 @@ L
   crash $rc && [ $((rc & 1)) = 1 ] && grep -q 'beat 20' "$TMP/b3.out" \
     && ok "selftest: beat budget is read from the world index, not hardcoded (20w bites)" \
     || no "selftest: beat_budget in the dumped index was ignored (rc=$rc) - the tunable is decorative"
+
+  # F6: canon is append-only at the file level too, and the witness must see a file that only ever
+  # existed during the run - a fixture-only check called the retcon runs clean while they deleted one
+  cc(){ python3 "$B/tests/canoncheck.py" "$@" >"$TMP/cc.out" 2>&1; echo $?; }
+  local CD="$TMP/cc"; rm -rf "$CD"; mkdir -p "$CD/fix/world/encyclopedia" "$CD/work/world/encyclopedia"
+  for f in bridge toll; do echo '- established: one fact' > "$CD/fix/world/encyclopedia/$f.md"
+    cp "$CD/fix/world/encyclopedia/$f.md" "$CD/work/world/encyclopedia/$f.md"; done
+  echo '- established: transient' > "$CD/work/world/encyclopedia/generated.md"
+  printf './world/encyclopedia/generated.md\n./world/encyclopedia/bridge.md\n./world/log.md\n' > "$CD/seen.txt"
+  [ "$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt")" = 0 ] \
+    && ok "selftest: canoncheck passes a whole world (known good, no false alarms)" \
+    || no "selftest: canoncheck cries wolf on an untouched world (out: $(head -1 "$TMP/cc.out"))"
+  rm "$CD/work/world/encyclopedia/toll.md"
+  r=$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt")
+  { [ "$r" = 1 ] && grep -q 'toll.md present at the start' "$TMP/cc.out"; } \
+    && ok "selftest: canoncheck catches a fixture file deleted" || no "selftest: a deleted entity passed (rc=$r)"
+  cp "$CD/fix/world/encyclopedia/toll.md" "$CD/work/world/encyclopedia/"
+  rm "$CD/work/world/encyclopedia/generated.md"
+  r=$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt")
+  { [ "$r" = 1 ] && grep -q 'generated.md seen during the run' "$TMP/cc.out"; } \
+    && ok "selftest: created-then-deleted is loss even though the fixture is intact" \
+    || no "selftest: the created-then-deleted blind spot is still open (rc=$r)"
+  echo '- established: transient' > "$CD/work/world/encyclopedia/generated.md"
+  printf 'lighthouse-place\n' > /dev/null
+  echo '- established: lighthouse' > "$CD/work/world/encyclopedia/lighthouse-place.md"
+  printf './world/encyclopedia/lighthouse-place.md\n' >> "$CD/seen.txt"
+  printf 'tool: bash\n{"command":"cd world && rm lighthouse-place.md"}\n' > "$CD/tr.md"
+  r=$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt" --transcript "$CD/tr.md")
+  { [ "$r" = 1 ] && grep -q 'attempted deletion' "$TMP/cc.out"; } \
+    && ok "selftest: a bare 'rm lighthouse-place.md' is caught by name, not path" \
+    || no "selftest: bare-path deletion slipped past (rc=$r) - the retcon case is unguarded"
+  printf 'tool: bash\n{"command":"ls -1 world/encyclopedia && rm /tmp/scratch.md"}\n' > "$CD/tr2.md"
+  r=$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt" --transcript "$CD/tr2.md")
+  [ "$r" = 0 ] && ok "selftest: rm of an unrelated temp file is not canon loss" \
+    || no "selftest: canoncheck flags unrelated deletions (rc=$r) - the gate will be worked around"
+  printf 'tool: python\nos.remove("world/encyclopedia/bridge.md")\n' > "$CD/tr3.md"
+  r=$(cc --dir "$CD/work" --fixture "$CD/fix" --seen "$CD/seen.txt" --transcript "$CD/tr3.md")
+  [ "$r" = 1 ] && ok "selftest: os.remove of an entity is caught, not just shell rm" \
+    || no "selftest: a python-side delete is invisible (rc=$r)"
+
+  # regression witness, on evidence rather than synthetic input: two runs the old fixture-only check
+  # certified as canon-clean did `rm encyclopedia/lighthouse-place.md` mid-session. If the detector ever
+  # drifts back to blindness, this fails on real transcripts, not just on my hand-built ones.
+  for j in "$REPO"/evidence/retcon-skill-multi-20260930T041517Z.md.session.jsonl \
+           "$REPO"/evidence/close-skill-multi-20260930T160047Z.md.session.jsonl; do
+    if [ -f "$j" ]; then
+      python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$j" \
+        >"$TMP/ccx.out" 2>&1; rc=$?
+      crash $rc && [ $rc = 1 ] && grep -q 'attempted deletion' "$TMP/ccx.out" \
+        && ok "selftest: detector still flags a past run the old gate passed ($(basename "$j" | cut -c1-28))" \
+        || no "selftest: a historically blind run now reads clean (rc=$rc) - the witness regressed"
+    fi
+  done
 
   # guidance_key() must move when guidance moves, and NOT move when only a test moves
   local k1 k2; k1=$(guidance_key)

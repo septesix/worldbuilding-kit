@@ -52,6 +52,7 @@ RPT=$(awk '/reads_per_turn:/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
 { echo "# $SCEN ($VAR) MULTI-TURN $STAMP"
   echo "label: commit=$COMMIT guidance=$BHASH spec_rev=$(grep -ohE '^\*\*R-[0-9]+' "$REPO"/docs/superpowers/specs/*-design.md | tail -1 | tr -d '*') words_per_turn=${WPT:-?} texture_cadence=${CAD:-?} reads_per_turn=${RPT:-?}"
   echo "cwd: $WORK"; echo "turns: $N"
+  SEEN="$WORK.seen"; : > "$SEEN"      # every encyclopedia path observed at any point in the run
   for i in $(seq 0 $((N - 1))); do
     echo "## turn $((i + 1))"
     echo "writer: ${TURNS[$i]}"
@@ -66,13 +67,16 @@ RPT=$(awk '/reads_per_turn:/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
     # for a session-priming bug, so emptiness is instrument failure, never evidence.
     tw=$(grep -vE '^(writer:|Warning:|INFRA-FAIL:)' "$TOUT" | wc -w)
     [ "$tw" -le 1 ] && EMPTY="$EMPTY $((i + 1))"
+    ( cd "$WORK" && find world/encyclopedia -name '*.md' 2>/dev/null ) >> "$SEEN"
     echo
   done
   echo "## files after run"; ( cd "$WORK" && find . -path ./.git -prune -o -type f -print | sort )
-  # append-only canon: the encyclopedia may gain files, never lose them (this run rm'd one)
-  miss=""
-  for f in $(cd "$FIX" && find world -name '*.md' | sort); do [ -f "$WORK/$f" ] || miss="$miss $f"; done
-  [ -n "$miss" ] && echo "CANON-LOSS: deleted during the run:$miss"
+  # append-only canon at the file level (F6). The old loop compared only against the fixture, so the
+  # retcon runs could `rm encyclopedia/lighthouse-place.md` - a file created earlier in the same
+  # session - and the canon counts stayed green. Three witnesses now: start state, ever-seen, tool calls.
+  python3 "$HERE/canoncheck.py" --dir "$WORK" --fixture "$FIX" --seen "$SEEN" --transcript "$SESS" \
+    || echo "CANON-LOSS: encyclopedia file count went down during the run (see canoncheck)"
+  echo "## encyclopedia files seen"; sort -u "$SEEN"
   [ -n "${EMPTY:-}" ] && echo "INFRA-FAIL: no assistant text in turn(s)$EMPTY - session/launch issue, not a contract breach"
   echo "## canon counts"
   echo "# file\testablished\tproposed\trevised\tsupersedes"
