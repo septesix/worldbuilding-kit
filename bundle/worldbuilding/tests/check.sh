@@ -56,6 +56,10 @@ rubric(){
   local R="$B/references/rubric.md"; [ -f "$R" ] && ok "rubric exists" || { no "rubric missing"; return; }
   local n; n=$(grep -cE '^\| *[a-z-]+ *\|' "$R"); ck "$n" 18 "rubric lists all 18 pillars ($n)"
   has "child-spawn rule present" "$R" 'must spawn'
+  # F9: the counting instruction used to send the model into the entity files, which cannot fit the
+  # ≤3-bodies-per-turn rule. Both rules are satisfiable only by counting from the index tables.
+  has "counting reads index tables, not bodies (F9)" "$R" 'index\.md.{0,3}s two tables|two tables'
+  has "one body per turn is stated (F9)" "$R" 'Read \*\*one\*\* body'
   has "anti-glass test present" "$R" '[Aa]nti-glass'
 }
 voice(){
@@ -69,6 +73,9 @@ method(){
   local w; w=$(wc -w < "$S"); [ "$w" -lt 500 ] && ok "bundle SKILL.md $w words (<500)" || no "bundle SKILL.md $w words"
   grep -qi 'empty' "$S" && grep -qi 'gap_weight' "$S" && ok "gap_weight polarity documented" || no "gap_weight polarity missing"
   has "write boundary names world/" "$S" 'world/'
+  # R-4: the consecutive-pillar rule is only obeyable if the target is recorded
+  has "turn log records the targeted pillar (R-4)" "$S" 'targeted: <pillar>'
+  has "log line shape documented in the template" "$B/assets/index-template.md" 'targeted: <pillar>'
   for k in contradiction rebuild proposed 3; do grep -qi "$k" "$S" && ok "Review Focus rule: $k" || no "Review Focus rule missing: $k"; done
 }
 kit(){

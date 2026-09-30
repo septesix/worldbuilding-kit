@@ -40,8 +40,13 @@ Every pillar carries the same two probes, which always work, plus its own pair:
 
 Bookkeeping only; the score that uses these counts lives in `../SKILL.md`.
 
-- Count canon lines in the entity files that list the pillar under `pillars:` — `established:` and
-  `proposed:` separately. Lines marked `superseded-by:` are history and count for nothing.
+- **Read the numbers from `world/index.md`'s two tables, not from the entity bodies.** The tables are
+  this arithmetic in standing form, rewritten by bookkeeping every turn. Opening bodies to count lines
+  is how a turn ends up reading six files to decide what to ask, which `../SKILL.md` forbids at three.
+  Read **one** body: the entity you are about to target, to quote it. Count from the tables; look in a
+  body only to have something true to say about it.
+- Rebuild the tables from the bodies only when `index.md` is missing or stale, announce the rebuild,
+  and count from the result. Lines marked `superseded-by:` are history and count for nothing.
 - A pillar with no lines at all, or only `proposed:` lines, is **empty**.
 - 1–2 established lines: **thin**. 3 or more across 2 or more entities: **substantial**.
 - `daily-life` is the texture pillar; `voice-attention` is its character-side feed.

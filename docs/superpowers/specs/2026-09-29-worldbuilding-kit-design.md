@@ -340,3 +340,13 @@ forbids consecutiveness; the missing piece was the record. What the spec never s
 "never 3 turns running" test the harness was asserting - that rule is my invention, now corrected to
 consecutive turns (spec §4), with the ≥ `lopsidedness_floor` condition reported as ADVISORY because
 candidate scores are not recorded either.
+
+**R-5 (2026-09-30, gate finding F9)** — Pillar and entity counts are read from `world/index.md`'s two
+tables, not from entity bodies; at most **one** body is read per turn, the targeted one, to quote it.
+§4's scoring was reachable two ways and the rubric described the expensive one: "count canon lines in
+the entity files", which needs N reads, against §3's "≤3 entity bodies per turn". Runs breached the
+read cap in 2 of 5 turns (6 bodies) while obeying the word and question rules. The tables exist so the
+arithmetic needs no file opening; R-4's rotation fix made it worse before this one, because scanning
+more pillars meant counting more bodies. Cost if wrong: the tables can be stale and the skill then
+scores from a fiction - which is why §3's stale-index rebuild is a precondition, and why `check.sh
+fixture` derives those same tables mechanically.
