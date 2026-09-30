@@ -7,29 +7,29 @@ metadata:
 
 # Worldbuilding
 
-One question per turn, never two. Voice: `references/voice.md`. What to ask: `references/rubric.md`.
+One question per turn. Voice: `references/voice.md`; what to ask: `references/rubric.md`.
 
 ## Find the world
 
-`project_root` = nearest ancestor holding `.git`, else CWD. Everything lives in
-`<project_root>/world/` — `index.md`, `encyclopedia/<slug>.md`, `threads.md`, `log.md` — and the
-skill **writes only inside `world/`**; anything wanted elsewhere is a proposal in chat, including
-chapter prose — decline in voice, offer an `artifact` or `daily-life` entity instead.
-Several `world/`: nearest wins; name the path, ask if ambiguous.
+`project_root` = nearest `.git` ancestor, else CWD. If it is `$HOME`, or holds neither `.git` nor
+`world/`: **write nothing** — ask which folder holds the manuscript, confirm the path once.
+Everything lives in `<project_root>/world/` (`index.md`, `encyclopedia/<slug>.md`, `threads.md`,
+`log.md`); the skill **writes only inside `world/`**. Anything else, including chapter prose, is a
+proposal in chat — decline in voice, offer an `artifact` or `daily-life` entity. Several `world/`:
+nearest wins; name the path.
 
 ## Modes
 
-- **`new`**, no `world/` — scaffold `index.md`, `threads.md` and one file per entity from
-  `assets/*-template.md`, every line `proposed:`. No fork-lists: a candidate world is entity files,
-  not prose.
+- **`new`**, no `world/` — scaffold `index.md`, `threads.md`, one file per entity from
+  `assets/*-template.md`, all lines `proposed:`. Entity files, not prose fork-lists.
 - **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild it from the entity
   files and announce the rebuild. ≤3 entity bodies per turn; never dump tables into chat.
 - **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.
 
 ## The turn
 
-- **write back** · **reflect** — after an answer, before any new question: append the canon line,
-  update `index.md`, name one consequence the writer did not say.
+- **write back** · **reflect** — after an answer, before any new question: append canon, update all
+  three bookkeeping files, name a consequence the writer didn't say.
 - **digest** — ≤3 lines: world, path, thin and empty pillars, open threads, since last session.
 - **target** — the hole scoring chose, citing an entity by name.
 - **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
@@ -40,26 +40,26 @@ Several `world/`: nearest wins; name the path, ask if ambiguous.
 
 `score = gap_weight × weight_gap + hook_weight × weight_hook + contradiction × weight_contradiction`
 
-**gap_weight** = size of the hole: 3 = **empty** pillar, or all its lines `proposed:` · 2 = 1–2
-`established:` · 1 = ≥3 across ≥2 entities · 0 = saturated. **hook_weight** = established entities
-linked, 0–3, +1 for a want or a need, cap 4. **contradiction** = 1 if an answer could falsify a
-canon line.
+**gap_weight** = size of the hole: 3 = **empty** or all-`proposed:` · 2 = 1–2 `established:` ·
+1 = ≥3 across ≥2 entities · 0 = saturated. **hook_weight** = linked established entities 0–3, +1
+want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 
 Candidates are existing entities or their children. Never the same pillar twice running when
 another scores ≥ `lopsidedness_floor`; every `texture_cadence`-th turn asks `daily-life` or
 `voice-attention`.
 
 - Repeating established canon: no re-ask, no duplicate. If it differs, run the Contradiction beat —
-  name both lines, resolve, add `revised:`, mark the old line `superseded-by:`.
+  name both lines, resolve, append a `revised:` line quoting the superseded text; never annotate the
+  old one.
 - Over half the last 8 turns wrote `proposed:` → stop interviewing; sketch 6 lines of the region and
   ask what is wrong with them.
 
 ## Bookkeeping
 
-Every new entity **must spawn ≥3 threads** when it appears. Each turn logs `provoked: <type>` in
-`log.md`; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only.
-At close, or after 12 turns: 3–6 bullets of what was decided, then the next thread to pull and why,
-in chat and in `log.md`.
+Thread `status:` flips in place; question text never changes. Every new entity **must spawn ≥3
+threads**. Each turn logs `provoked: <type>`; three of one type forces a switch. Canon:
+one fact, ≤25 words, declarative, append-only. At close or after 12 turns: 3–6 bullets of what was
+decided, then the next thread and why, in chat and `log.md`.
 
 Tunables (`words_per_turn`, `texture_cadence`, `sarcasm`, the three weights, `lopsidedness_floor`)
 are read from `world/index.md` and edited there.

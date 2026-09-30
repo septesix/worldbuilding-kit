@@ -9,9 +9,12 @@ revised: <YYYY-MM-DD>
 
 ## Canon
 - established: one fact per bullet line, ≤25 words, declarative.
-- proposed: the skill's guess, offered because the writer said "you decide". Veto-able at any time.
-- established: something changed later → add a `revised:` line and mark the old one `superseded-by:`.
-  Never edit a canon line in place; never delete one.
+- proposed: the skill's guess, because the writer said "you decide". Veto-able at any time.
+- revised: the toll is paid in grapes (2026-09-30, supersedes "the toll is a name, not coin")
+
+**Append only.** A retcon is a NEW line whose parenthetical quotes what it replaces. Never edit,
+reorder, delete, or annotate an existing bullet — no `superseded-by:` written into an old line,
+because that annotation is itself the in-place edit this rule exists to prevent.
 
 ## Open questions
 - T-000 <what is still unknown about this entity>

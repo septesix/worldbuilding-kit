@@ -41,6 +41,10 @@ templates(){
   grep -q '^## Canon' "$T/entity-template.md" && ok "entity template has Canon" || no "entity template lacks ## Canon"
   grep -q 'proposed:' "$T/entity-template.md" && ok "entity template shows provenance" || no "no proposed: provenance"
   grep -q 'superseded-by:' "$T/entity-template.md" && ok "append-only marker documented" || no "no superseded-by: marker"
+  grep -q 'Append only' "$T/entity-template.md" && grep -q 'Never edit' "$T/entity-template.md" && ok "template states append-only" || no "template dropped the append-only rule"
+  # the demonstrated shape: a retcon must appear as its OWN bullet, never as an annotation on an old one
+  grep -qE '^- revised:' "$T/entity-template.md" && ok "retcon demonstrated as a standalone line" || no "no standalone revised: example in template"
+  grep -qE '^- established:.*superseded-by:' "$T/entity-template.md" && no "template annotates an existing bullet (C3 regression)" || ok "no annotation written into an old bullet"
   grep -q '^## Links' "$T/entity-template.md" && ok "entity template has Links" || no "no Links section"
   grep -q 'status: open' "$T/threads-template.md" && ok "threads template carries status" || no "threads template lacks status"
   local k; for k in person place era custom conflict institution artifact text creature; do
@@ -75,6 +79,8 @@ kit(){
   local w; w=$(wc -w < "$K"); [ "$w" -lt 150 ] && ok "kit $w words (<150)" || no "kit $w words"
   local d; d=$(awk '/^description:/{sub(/^description: */,"");print}' "$K" | wc -w)
   [ "$d" -le 35 ] && ok "kit description $d words (<=35)" || no "kit description $d words"
+  grep -qi 'write nothing\|do not scaffold' "$B/SKILL.md" && ok "guard present in the BUNDLE" || no "bundle still scaffolds anywhere (C2)"
+  grep -q 'home-dir' "$B/tests/run.sh" && grep -q 'skill "$REPO/kit"' "$B/tests/run.sh" && ok "home-dir routed to the kit" || no "home-dir still loads the bundle only"
   grep -q 'worldbuilding' "$K" && ok "kit names the bundle" || no "kit does not name the bundle"
 }
 

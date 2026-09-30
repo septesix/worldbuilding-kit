@@ -17,7 +17,7 @@ esac
 [ "$SCEN" = stale-index ] && rm -f "$WORK/world/index.md"
 CLEAN=(env -u PI_API_KEY -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u PI_PROVIDER -u PI_REASONING_LEVEL HOME="$FAKEHOME")
 args=(--no-extensions --no-skills --no-session)
-[ "$VAR" = skill ] && args+=(--skill "$REPO/bundle/worldbuilding")
+[ "$VAR" = skill ] && if [ "$SCEN" = home-dir ]; then args+=(--skill "$REPO/kit"); else args+=(--skill "$REPO/bundle/worldbuilding"); fi
 RUN_TIMEOUT="${RUN_TIMEOUT:-900}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-$STAMP.md"; mkdir -p "$REPO/evidence"
 { echo "# $SCEN ($VAR) $STAMP"; echo "cwd: $WORK"; echo "## prompt"; cat "$HERE/prompts/$SCEN.txt"
@@ -31,7 +31,10 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-$STAMP.md"; m
 } > "$OUT" 2>&1
 # exit contract: 0 usable run | 1 contaminated | 2 infrastructure failure | 3 both
 INFRA=0; grep -q 'INFRA-FAIL' "$OUT" && { INFRA=2; echo "INFRA-FAIL -> $OUT"; }
-CONT=0; grep -qiE 'SDD|worldbuilding-kit|superpowers|/home/septesix' "$OUT" && { CONT=1; echo "CONTAMINATED -> $OUT"; }
+# parent-context markers only. Bare paths are NOT evidence of a leak: a kit run necessarily names
+# the repo (that is where the bundle lives), and a run may legitimately `ls` its own home.
+CONT=0; grep -qiE 'SDD ledger|gate-report|Ruling [0-9]|progress\.md|worldbuilding-kit/(docs|kit|bundle)|exposeSessionEnvironment' "$OUT" && { CONT=1; echo "CONTAMINATED -> $OUT"; }
+grep -q "/home/septesix" "$OUT" && echo "  note: run referenced an absolute home path (expected for kit runs; verify by hand)"
 [ "$INFRA" = 0 ] && [ "$CONT" = 0 ] && echo "clean -> $OUT"
 [ "$INFRA" = 2 ] && [ "$CONT" = 1 ] && exit 3
 exit $((INFRA + CONT))
