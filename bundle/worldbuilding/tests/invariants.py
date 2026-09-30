@@ -14,7 +14,7 @@ world/log.md - not guessed from prose. Three separate versions of this file got 
 evening: reads that counted edits, tunables that silently fell back to defaults when one label field
 was blank, and a close detector that only recognised bullets shaped like `- slug:`.
 """
-import sys, re, json, os
+import sys, re, traceback, json, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PILLARS = [m.group(1) for m in re.finditer(r'^\| ([a-z-]+) +\|',
@@ -52,7 +52,11 @@ def turns_of(text):
     return [c for c in re.split(r'\n## turn \d+', body) if c.strip()]
 
 
-MACHINE = re.compile(r'^-\s*turn:\s*\d+\s*·\s*provoked:\s*([a-z-,\s]+?)\s*·\s*targeted:\s*([a-z-]+)', re.M)
+# A turn line is any line starting `- turn: <n>`; the fields may ride on it in any order, because the
+# skill puts `decided:` prose on the same line rather than spending a second line. An earlier regex
+# demanded 'turn: n · provoked: · targeted:' in that exact order and read 9 well-formed lines as 2,
+# which is how a clean run got reported as a ledger collapse.
+TURN_LINE = re.compile(r'^[-*]\s*turn:\s*(\d+)(.*)$', re.M)
 
 
 def log_dump(text):
@@ -60,23 +64,32 @@ def log_dump(text):
     return m.group(1) if m else ''
 
 
-def log_sequence(text, n):
-    """(targeted, provoked) per turn from the machine lines R-9 requires - one line per turn.
+def log_sequence(text, want):
+    """(targeted, provoked) per turn from the turn lines R-9 requires - one line per turn.
 
     Prose `provoked:` lines are a fallback only: before R-9 the fields arrived intermittently (one
     `targeted:` in 14 log lines in one run, 15 in the next), which made cadence arithmetic compute
-    from a ledger with holes and report that as a clean pass.
+    from a ledger with holes and report that as a clean pass. The parameter is `want`, not `n`: a
+    `for n, rest in …` loop shadowed it and made the slice arithmetic crash on a string.
     """
     log = log_dump(text)
-    mach = [(g.group(2), g.group(1).split(',')[-1].strip()) for g in MACHINE.finditer(log)]
+    mach = []
+    for num, rest in TURN_LINE.findall(log):
+        tg = re.search(r'targeted:\s*([a-z-]+)', rest)
+        pv = re.findall(r'provoked:\s*([a-z-, ]+)', rest)
+        mach.append((int(num), tg.group(1) if tg else '?', pv[-1].strip().rstrip(', ') if pv else '?'))
+    mach.sort(key=lambda r: r[0])
     if mach:
-        return (mach[-n:] if len(mach) >= n else mach), len(mach), 'machine'
+        lo, hi = mach[-min(len(mach), want)][0], mach[-1][0]
+        NUMRANGE = f'#{lo}-#{hi}'
+        return [(t, pv) for _, t, pv in (mach[-want:] if len(mach) >= want else mach)], \
+               len(mach), 'machine (' + NUMRANGE + ')'
     out = []
     for line in log.split('\n'):
         tg = re.search(r'targeted:\s*([a-z-]+)', line)
         pv = re.findall(r'provoked:\s*([a-z-]+)', line)
         if tg or pv: out.append((tg.group(1) if tg else '?', pv[-1] if pv else '?'))
-    return (out[-n:] if len(out) >= n else out), len(out), 'prose' 
+    return (out[-want:] if len(out) >= want else out), len(out), 'prose' 
 
 
 def reads_per_turn(session_path, n):
@@ -123,15 +136,18 @@ def main():
     # still readable, and blacking out every window over one gap hands the run a free pass on cadence.
     # The 1-line tolerance is my invention, not the spec's; missing lines beyond it stop the scoring.
     scored = len(ts) - sum(1 for b in ts if 'INFRA-FAIL' in b)   # eaten turns are not scored
-    gap = (scored - NMACH) if LOGSRC == 'machine' else 0
-    holes = LOGSRC == 'machine' and gap > 1
-    if LOGSRC == 'machine' and gap == 1:
+    gap = (scored - NMACH) if LOGSRC.startswith('machine') else 0
+    # startswith, not equality: LOGSRC gained a numbering range ("machine (#2-#9)") and the equality
+    # test silently stopped matching, which made hole detection inert and a probe caught it
+    mach_src = LOGSRC.startswith('machine')
+    holes = mach_src and gap > 1
+    if mach_src and gap == 1:
         print(f'   ledger gap: 1 turn without a machine line (turn {scored}); windows are scored from'
               f' the {NMACH} that exist - texture is never assumed satisfied by a gap')
     eaten = [i for i, b in enumerate(ts) if 'INFRA-FAIL' in b]
     words, nq_all, targ, prov, nrecap, src = [], [], [], [], [], []
     print(f'  {len(ts)} turns | limit {limit}w | cadence {cad} | max {maxr} entity reads'
-          f' | log.md: {NMACH} lines ({LOGSRC}) for {len(ts) - len(eaten)} scored turns' + (f' | {len(eaten)} turn(s) eaten by harness, not scored' if eaten else '')
+          f' | log.md: {NMACH} turn lines {LOGSRC} for {len(ts) - len(eaten)} scored turns' + (f' | {len(eaten)} turn(s) eaten by harness, not scored' if eaten else '')
           + (' | DEFAULTED: ' + ', '.join(fallback) if fallback else ''))
     rc = 0
     for i, b in enumerate(ts):
@@ -239,4 +255,5 @@ if __name__ == '__main__':
     except SystemExit:
         raise
     except Exception as e:
+        if os.environ.get('INV_DEBUG'): raise          # INV_DEBUG=1 to see the frame, not just the type
         print(f'  INSTRUMENT-ERROR {type(e).__name__}: {e}'); sys.exit(128)
