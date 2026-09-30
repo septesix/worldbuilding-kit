@@ -102,7 +102,15 @@ def main():
     LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
     # computed up front: the cadence and rotation loops both consult it, and an earlier draft
     # referenced it before assignment, which is a crash, not a verdict (UnboundLocalError)
-    holes = LOGSRC == 'machine' and NMACH < len(ts)
+    # R-9 detection. Suppression is proportional: a ledger that is whole but for the close turn is
+    # still readable, and blacking out every window over one gap hands the run a free pass on cadence.
+    # The 1-line tolerance is my invention, not the spec's; missing lines beyond it stop the scoring.
+    scored = len(ts) - sum(1 for b in ts if 'INFRA-FAIL' in b)   # eaten turns are not scored
+    gap = (scored - NMACH) if LOGSRC == 'machine' else 0
+    holes = LOGSRC == 'machine' and gap > 1
+    if LOGSRC == 'machine' and gap == 1:
+        print(f'   ledger gap: 1 turn without a machine line (turn {scored}); windows are scored from'
+              f' the {NMACH} that exist - texture is never assumed satisfied by a gap')
     eaten = [i for i, b in enumerate(ts) if 'INFRA-FAIL' in b]
     words, nq_all, targ, prov, nrecap, src = [], [], [], [], [], []
     print(f'  {len(ts)} turns | limit {limit}w | cadence {cad} | max {maxr} entity reads'
@@ -125,9 +133,14 @@ def main():
         nq += sum(len(QUOTED.sub('', l).split('?')) - 1 for l in prose
                   if not BULLET.match(l) and not BEAT.match(l))          # a '?' hiding elsewhere
         if closing and len(recap) >= 3: nq = max(nq, 1)                   # the close owes a recap, not a q
-        txt = ' '.join(body).lower() + ' ' + ' '.join(LOG[i] if i < len(LOG) else ())
-        tg = re.findall(r'targeted:\s*([a-z-]+)', txt)
-        pv = re.findall(r'provoked:\s*([a-z-]+)', txt)
+        txt = ' '.join(body).lower()
+        # the machine line wins outright. Joining LOG[i] into the search text was useless - the tuple
+        # holds bare values ('daily-life', 'cost') with no 'targeted:' prefix, so the regex never
+        # matched and every run silently scored prose guesses while claiming the ledger was read.
+        rec_t = LOG[i][0] if i < len(LOG) and LOG[i][0] != '?' else None
+        rec_p = LOG[i][1] if i < len(LOG) and LOG[i][1] != '?' else None
+        tg = [rec_t] if rec_t else re.findall(r'targeted:\s*([a-z-]+)', txt)
+        pv = ([rec_p] if rec_p else []) or re.findall(r'provoked:\s*([a-z-]+)', txt)
         hit = (tg[:1] or [p for p in PILLARS if p in txt] or [x for x in TEXTURE if x in txt] or ['?'])
         pvx = (pv[-1:] or ['?'])[0]
         # logged = the state is recorded somewhere authoritative: in chat this turn, or in log.md
@@ -153,15 +166,13 @@ def main():
         print(f'   entity reads per turn: {rd}' + (f' - tripwire crossed at {over} (scoring from files;'
               f' raise reads_per_turn if this world needs it)' if over else ''))
         if over: rc |= 8
-    for i in range(0, max(0, len(targ) - cad + 1)):
+    for i in range(0, max(0, len(targ) - cad + 1)) if not holes else []:
         win = targ[i:i + cad]
         if not any(t in TEXTURE for t in win) and '?' not in win:
             print(f'   texture not asked within {cad} turns ending at turn {i + cad} {win}'); rc |= 16
-    if holes:
-        print('   (cadence/rotation suppressed - reported only as the hole above)')
-    runs = [j + 1 for j in range(1, len(prov)) if prov[j] == prov[j-1] == prov[j-2] != '?'] if len(prov) >= 3 and not holes else []
+    runs = [j + 1 for j in range(1, len(prov)) if prov[j] == prov[j-1] == prov[j-2] != '?'] if len(prov) >= 3 else []
     if runs: print(f'   same provoked type 3 turns running, ending at {runs}'); rc |= 32
-    same = [j + 1 for j in range(1, len(targ)) if targ[j] == targ[j-1] != '?']
+    same = [] if holes else [j + 1 for j in range(1, len(targ)) if targ[j] == targ[j-1] != '?']
     nlog = sum(1 for x in src if x == 'logged')
     if same and nlog == len(targ):
         print(f'   same pillar in consecutive turns ending at {same} - breach unless no alternative'
@@ -169,13 +180,15 @@ def main():
     elif same:
         print(f'   same pillar in consecutive turns ending at {same} - see state note below')
     if holes:
-        print(f'   BOOKKEEPING HOLE: {NMACH} machine log lines for {len(ts) - len(eaten)} scored turns'
-              f' - the cadence and rotation windows below are NOT trustworthy (R-9)'); rc |= 2
+        print(f'   BOOKKEEPING HOLE: {NMACH} machine log lines for {scored} scored turns'
+              f' - cadence and rotation windows are OMITTED, not scored (R-9)'); rc |= 2
     if nlog < len(targ):
         # announce missing per-turn state whether or not it happened to cause a repeat, so a clean
         # looking run can never be read as "the consecutive rule was checked and passed"
-        print(f'   state note: targeted: logged in {nlog}/{len(targ)} turns; the rest are inferred from'
-              f' prose, so the consecutive-pillar rule was NOT evaluated')
+        how = ('evaluated on the logged turns' if nlog * 2 >= len(targ)
+               else 'NOT evaluated - too few logged to say')
+        print(f'   state note: targeted: logged in {nlog}/{len(targ)} turns; rotation was {how}'
+              f'{"; " + str(len(targ) - nlog) + " turn(s) inferred from prose" if nlog < len(targ) else ""}')
     # no ^ anchor: a chunk starts with the turn number, so the writer line is never at position 0
     owed = (len(ts) - 1) if len(ts) >= 12 else next((j for j in range(len(ts))
              if re.search(r"(?i)writer:.*(that's all|that is all|wrap it up|done for today)", ts[j])), -1)

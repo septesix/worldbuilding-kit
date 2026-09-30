@@ -207,51 +207,55 @@ selftest(){
   local rc; rc=0
   build_ev(){
     python3 - "$1" "$2" "$3" <<'L'
-import sys
+import sys, json
 path, mode, sess = sys.argv[1], sys.argv[2], sys.argv[3]
-tg = ['history-periodisation', 'politics-power', 'geography-routes', 'daily-life', 'voice-attention']
-pv = ['connection', 'constraint', 'cost', 'consequence', 'stake']
+BASE_T = ['history-periodisation', 'politics-power', 'geography-routes', 'daily-life', 'voice-attention']
+BASE_P = ['connection', 'constraint', 'cost', 'consequence', 'discovery']
+ALT = {
+    # a pillar that RECURS without ever being consecutive is legal under spec §4; an earlier fixture
+    # had turns 1-2 identical and so "proved" the tool did not invent rules by breaking them itself
+    'same-pillar':       ['geography-routes', 'daily-life', 'geography-routes', 'voice-attention', 'politics-power'],
+    'consecutive-logged':['history-periodisation', 'politics-power', 'politics-power', 'daily-life', 'voice-attention'],
+    'unlogged':          ['history-periodisation', 'politics-power', 'daily-life', 'voice-attention', 'geography-routes'],
+    'no-machine':        BASE_T,
+    'no-texture':        ['history-periodisation', 'politics-power', 'geography-routes', 'institutions-law', 'ecology-resources'],
+}
 out = ['# x (skill) MULTI',
-       'label: commit=deadbe bundle=abcd1234 spec_rev=R-3 words_per_turn=160 texture_cadence=4']
+       'label: commit=deadbe bundle=abcd1234 spec_rev=R-9 words_per_turn=160 texture_cadence=4']
+eff_t, eff_p = [], []
 for i in range(5):
-    t, p = tg[i], pv[i]
-    # a pillar that RECURS without ever being consecutive: legal under spec §4, and the old probe
-    # asserted the opposite because I wrote a list with turns 1-2 identical
-    if mode == 'same-pillar': t = ['geography-routes', 'daily-life', 'geography-routes',
-                                   'voice-attention', 'politics-power'][i]
-    if mode == 'consecutive-logged': t = ['history-periodisation', 'politics-power', 'politics-power',
-                                          'daily-life', 'voice-attention'][i]
-    if mode == 'unlogged': t = ['history-periodisation', 'politics-power', 'daily-life',
-                               'voice-attention', 'geography-routes'][i]
-    if mode == 'no-machine': t = tg[i]
-    if mode == 'no-texture':  t = ['history-periodisation', 'politics-power', 'geography-routes',
-                                   'institutions-law', 'ecology-resources'][i]
-    if mode == 'provoked-repeat': p = 'connection'
+    t = ALT.get(mode, BASE_T)[i]
+    p = 'connection' if mode == 'provoked-repeat' else BASE_P[i]
     q = '**Question.** Which crossing is oldest?'
-    if mode == 'double-question' and i == 2: q = '**Question.** Which crossing is oldest? And which is widest?'
-    body = '**Digest.** ok.'
-    if mode == 'long-turn' and i == 1: body = '**Digest.** ' + 'word ' * 200
-    stop = f'**Stop.** `provoked: {p}'
-    stop += f' · targeted: {t}`' if mode not in ('unlogged', 'no-machine') else '`'
-    out += [f'## turn {i+1}', 'writer: an answer', body, f'**Target.** {t}.',
-            stop, q, '- steady — one two three', '']
-    # the log.md dump, in the R-9 machine shape, mirroring the turn targets so cadence probes stay
-    # meaningful; 'machine-hole' writes fewer lines than there are turns, which is the failure mode
-    # 'unlogged' and 'no-machine' both mean: no machine lines, so the tool must say it cannot see
-    lines = [] if mode in ('no-machine', 'unlogged') else range(1, (4 if mode == 'machine-hole' else 6))
-    log = ['## 2026-09-30 (session 5)'] + [f'- turn: {j} · provoked: {pv[j-1]} · targeted: {tg[j-1]}' for j in lines]
-    open(path, 'w').write('\n'.join(out) + '## files after run\n## world/ contents\n'
-                         + '--- ./world/log.md\n' + '\n'.join(log) + '\n')
+    if mode == 'double-question' and i == 2:
+        q = '**Question.** Which crossing is oldest? And which is widest?'
+    body = '**Digest.** ' + ('word ' * 200 if mode == 'long-turn' and i == 1 else 'ok.')
+    stop = '**Stop.** `provoked: ' + p + ('' if mode in ('unlogged', 'no-machine') else ' \u00b7 targeted: ' + t) + '`'
+    eff_t.append(t); eff_p.append(p)
+    out += ['## turn %d' % (i + 1), 'writer: an answer', body, '**Target.** %s.' % t,
+            stop, q, '- steady \u2014 one two three', '']
+# the ledger dump in the R-9 machine shape, built from the EFFECTIVE per-turn values. The first draft
+# wrote the base lists, so the mode adjustments never reached the log and four probes went green on
+# data the builder had quietly overwritten.
+if mode in ('no-machine', 'unlogged'):
+    mach = []
+elif mode == 'machine-hole':
+    mach = range(1, 4)
+else:
+    mach = range(1, 6)
+log = ['## 2026-09-30 (session 5)'] + ['- turn: %d \u00b7 provoked: %s \u00b7 targeted: %s'
+                                       % (j, eff_p[j - 1], eff_t[j - 1]) for j in mach]
+open(path, 'w').write('\n'.join(out) + '## files after run\n## world/ contents\n'
+                      + '--- ./world/log.md\n' + '\n'.join(log) + '\n')
 if int(sess):
     n = int(sess)
     recs = []
     for i in range(5):
         recs.append('{"type":"message","message":{"role":"user","content":[]}}')
-        calls = [{'type': 'toolCall', 'name': 'read', 'arguments': {'path': f'world/encyclopedia/x{j}.md'}}
+        calls = [{'type': 'toolCall', 'name': 'read', 'arguments': {'path': 'world/encyclopedia/x%d.md' % j}}
                  for j in range(n)]
-        recs.append('{"type":"message","message":{"role":"assistant","content":%s}}' % __import__('json').dumps(calls))
+        recs.append('{"type":"message","message":{"role":"assistant","content":%s}}' % json.dumps(calls))
     open(path + '.session.jsonl', 'w').write('\n'.join(recs) + '\n')
-
 L
   }
   crash(){ [ $(( $1 & 128 )) = 0 ] || { no "selftest: invariants.py CRASHED (rc=$1) - a broken tool, not a finding"; return 1; }; return 0; }
@@ -372,7 +376,7 @@ L3
   crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'BOOKKEEPING HOLE' "$TMP/m2.out" \
     && ok "selftest: 3 machine lines for 5 turns is announced as a hole, not a clean window" \
     || no "selftest: a gapped ledger passed quietly (rc=$rc) - R-9 detection is inert"
-  grep -q 'suppressed' "$TMP/m2.out" && ok "selftest: windows are not scored across a ledger hole" \
+  grep -qE 'BOOKKEEPING HOLE|OMITTED' "$TMP/m2.out" && ok "selftest: windows are not scored across a ledger hole" \
     || no "selftest: cadence was computed anyway, from a log with holes"
   build_ev "$TMP/h.md" ok 0; python3 "$B/tests/invariants.py" "$TMP/h.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: no session log reads UNKNOWN, never silent" || no "selftest: invariants PASSes with no session log (rc=$rc)"

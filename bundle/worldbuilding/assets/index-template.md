@@ -60,7 +60,8 @@ bullets in those files, excluding any carrying `supersedes`; `proposed` = `- pro
 - turn: <n> · provoked: <connection|constraint|cost|consequence|discovery|contradiction|stake|review> · targeted: <pillar>
 - decided: <what the writer settled>
 
-Exactly one machine line per turn, in order. Prose lines are for the writer; the machine line is for
+Exactly one machine line per turn, in order - including the close turn, whose line goes down before
+its recap bullets. Prose lines are for the writer; the machine line is for
 the next turn, which cannot remember otherwise.
 
 `targeted:` is not decoration. The rule "never the same pillar in consecutive turns when another

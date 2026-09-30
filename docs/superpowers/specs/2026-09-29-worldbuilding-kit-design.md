@@ -395,3 +395,15 @@ precisely what starves cadence, because every turn picks a different non-texture
 Cost if wrong: texture turns arrive by arithmetic rather than tact, so a session in a grim stretch gets
 a food question because a counter said so. Accepted - the alternative is worlds with nine bridges and
 nothing to eat, which is the failure this whole design exists to prevent.
+
+**R-9 (2026-09-30, gate finding at 12 turns)** — `log.md` carries exactly **one machine line per
+turn**: `- turn: <n> · provoked: <type> · targeted: <pillar>`, written before the prose `decided:`
+lines and before any close recap. Prose is for the writer; the machine line is for the next turn, which
+cannot remember otherwise. Motivated by the gap R-4 left: across three 12-turn runs the field appeared
+in 1 of 14 prose lines, then 5 of 12 turns, then - once required as its own line - 11 of 12. Cadence
+failures fell from 6 unmet windows to 1 for the same reason: the rule became readable, not because the
+skill's taste changed. §4's cadence and consecutive-pillar constraints are only evaluable against this
+line; where it is missing, they are reported as unscored rather than satisfied.
+Cost if wrong: one more mechanical line per turn in a file the writer may read as bookkeeping noise.
+Mitigated by shape: the line is short, fixed-form, and the prose that humans actually read stays where
+it was.
