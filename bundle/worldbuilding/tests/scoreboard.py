@@ -53,8 +53,28 @@ def tables(keys, ent):
             for s, e in sorted(ent.items())]
     return rows, ents
 
+BUL_EST_RE = re.compile(r'^\s*-\s*established\b(?!.*supersedes).*$', re.M)
+BUL_PRO_RE = re.compile(r'^\s*-\s*proposed\b.*$', re.M)
+REV_RE   = re.compile(r'^\s*-\s*revised\b.*$', re.M)
+
+
+def counts(world):
+    tot = {'established': 0, 'proposed': 0, 'revised': 0, 'superseded': 0}
+    print('file\testablished\tproposed\trevised\tsupersedes')
+    for path in sorted(glob.glob(os.path.join(world, 'encyclopedia', '*.md'))):
+        txt = open(path, encoding='utf-8').read()
+        est = len(BUL_EST_RE.findall(txt)); pro = len(BUL_PRO_RE.findall(txt))
+        rev = len(re.findall(r'^\s*-\s*revised:', txt, re.M))
+        sup = len(re.findall(r'supersedes', txt))
+        tot['established'] += est; tot['proposed'] += pro; tot['revised'] += rev; tot['superseded'] += sup
+        print(f"{os.path.basename(path)}\t{est}\t{pro}\t{rev}\t{sup}")
+    print(f"TOTAL\t{tot['established']}\t{tot['proposed']}\t{tot['revised']}\t{tot['superseded']}")
+    return 0
+
+
 def main():
     world = sys.argv[1]; diff = '--diff' in sys.argv
+    if '--counts' in sys.argv: return counts(world)
     keys, ent = scan(world)
     rows, ents = tables(keys, ent)
     idx = os.path.join(world, 'index.md')

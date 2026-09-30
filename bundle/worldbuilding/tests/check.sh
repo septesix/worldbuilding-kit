@@ -94,10 +94,14 @@ multi(){
   [ -z "$all" ] && { echo "  skip  multi: no multi-turn runs recorded"; return; }
   sel=$(grep -l "bundle=$bh" $all 2>/dev/null | head -4)
   [ -z "$sel" ] && { echo "  skip  multi: no multi-turn evidence from bundle $bh"; return; }
-  local rc=0
-  for f in $sel; do python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?)); done
+  local rc=0 f
+  for f in $sel; do
+    grep -q '^CANON-LOSS' "$f" && { echo "   canon files deleted during $(basename "$f") - append-only breached (world/ files may be added, never removed)"; rc=$((rc | 128)); }
+    grep -q 'INFRA-FAIL: no assistant text' "$f" && { echo "   an eaten turn in $(basename "$f") - instrument failure, not scored as a finding"; rc=$((rc | 256)); }
+    python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?))
+  done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
-    || no "multi-turn invariant breached (codes: $rc - 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation)"
+    || no "multi-turn invariant breached (codes: $rc - 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation, 128 canon loss, 256 eaten turn)"
 }
 
 behavior(){

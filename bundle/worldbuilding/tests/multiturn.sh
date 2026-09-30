@@ -21,12 +21,16 @@ mkdir -p "$FAKEHOME/.pi/agent"
 ln -s "$HOME/.pi/agent/models.json" "$FAKEHOME/.pi/agent/models.json" 2>/dev/null
 printf '{}' > "$FAKEHOME/.pi/agent/settings.json"
 cp -R "$FIX/." "$WORK/"
-SID="$(cat /proc/sys/kernel/random/uuid)"
+# Passing a brand-new --session-id makes pi print "No project session found ... creating" and it has
+# been seen to consume the turn with no assistant text at all - an eaten turn then looks like a
+# 0-question violation of the turn contract. Turn 1 creates the session; later turns name the file.
+SID=""
 
 args=(--no-extensions --no-skills)
 [ "$VAR" = skill ] && args+=(--skill "$BUNDLE")
 CLEAN=(env -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u PI_PROVIDER -u PI_REASONING_LEVEL -u PI_API_KEY HOME="$FAKEHOME")
 
+EMPTY=""
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"; OUT="$REPO/evidence/$SCEN-$VAR-multi-$STAMP.md"; mkdir -p "$REPO/evidence"
 COMMIT="$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 [ -n "$(git -C "$REPO" status --porcelain 2>/dev/null)" ] && COMMIT="$COMMIT+dirty"
@@ -41,12 +45,30 @@ CAD=$(awk '/texture_cadence/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
   for i in $(seq 0 $((N - 1))); do
     echo "## turn $((i + 1))"
     echo "writer: ${TURNS[$i]}"
-    ( cd "$WORK" && "${CLEAN[@]}" timeout "$TURN_TIMEOUT" pi "${args[@]}" --session-dir "$SESS" --session-id "$SID" -p "${TURNS[$i]}" ) \
+    sidargs=(); [ -n "$SID" ] && sidargs=(--session "$SID")
+    TOUT="$SESS/turn$((i + 1)).txt"
+    ( cd "$WORK" && "${CLEAN[@]}" timeout "$TURN_TIMEOUT" pi "${args[@]}" --session-dir "$SESS" "${sidargs[@]}" -p "${TURNS[$i]}" ) > "$TOUT" 2>&1 \
       || echo "INFRA-FAIL: turn $((i + 1)) exited nonzero or timed out"
+    [ -z "$SID" ] && SID=$(find "$SESS" -name '*.jsonl' | head -1)
+    cat "$TOUT"
+    # text the writer would actually read - excludes the scripted reply and pi's own notices.
+    # A turn with none was eaten by the harness; scoring it as "0 questions" once blamed the skill
+    # for a session-priming bug, so emptiness is instrument failure, never evidence.
+    tw=$(grep -vE '^(writer:|Warning:|INFRA-FAIL:)' "$TOUT" | wc -w)
+    [ "$tw" -le 1 ] && EMPTY="$EMPTY $((i + 1))"
     echo
   done
   echo "## files after run"; ( cd "$WORK" && find . -path ./.git -prune -o -type f -print | sort )
-  echo "## world/ contents"; ( cd "$WORK" && for f in $(find . -path '*world*' -name '*.md' -type f | sort); do echo "--- ./$f"; head -c 3000 "$f"; echo; done )
+  # append-only canon: the encyclopedia may gain files, never lose them (this run rm'd one)
+  miss=""
+  for f in $(cd "$FIX" && find world -name '*.md' | sort); do [ -f "$WORK/$f" ] || miss="$miss $f"; done
+  [ -n "$miss" ] && echo "CANON-LOSS: deleted during the run:$miss"
+  [ -n "${EMPTY:-}" ] && echo "INFRA-FAIL: no assistant text in turn(s)$EMPTY - session/launch issue, not a contract breach"
+  echo "## canon counts"
+  echo "# file\testablished\tproposed\trevised\tsupersedes"
+  python3 "$HERE/scoreboard.py" "$FIX/world" --counts | tail -n +2 | sed 's/^/fixture\t/'
+  python3 "$HERE/scoreboard.py" "$WORK/world" --counts | tail -n +2 | sed 's/^/produced\t/'
+  echo "## world/ contents"; ( cd "$WORK" && for f in $(find . -path '*world*' -name '*.md' -type f | sort); do echo "--- $f"; head -c 3000 "$f"; echo; done )
   echo "## session log"; S=$(find "$SESS" -name '*.jsonl' | head -1)
   if [ -n "$S" ]; then cp "$S" "$OUT.session.jsonl"; echo "copied: $(basename "$OUT").session.jsonl ($(wc -l < "$OUT.session.jsonl") records)"; else echo "MISSING: no session log written"; fi
 } > "$OUT" 2>&1
@@ -55,4 +77,5 @@ CONT=0
 INFRA=0; grep -q 'INFRA-FAIL\|MISSING: no session' "$OUT" && { INFRA=1; echo "INFRA-FAIL -> $OUT"; }
 grep -qiE "SDD ledger|gate-report|Ruling [0-9]|progress\.md" "$OUT" && { CONT=1; echo "CONTAMINATED -> $OUT"; }
 [ "$INFRA" = 0 ] && echo "clean -> $OUT"
-exit $((INFRA + CONT))
+CANONLOST=0; grep -q '^CANON-LOSS' "$OUT" && { CANONLOST=4; echo "CANON-LOSS (append-only breached) -> $OUT"; }
+exit $((INFRA + CONT + CANONLOST))
