@@ -21,19 +21,19 @@ nearest wins; name the path.
 ## Modes
 
 - **`new`**, no `world/` — scaffold `index.md`, `threads.md`, one file per entity from
-  `assets/*-template.md`, all lines `proposed:`. Entity files, not prose fork-lists.
+  `assets/*-template.md`, all `proposed:`. Entity files, not prose fork-lists.
 - **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild from the files and
   announce it. ≤ `reads_per_turn` bodies, else you are scoring from files. Never dump tables into chat.
 - **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.
 
 ## The turn
 
-- **write back** · **reflect** — after an answer, before any new question: append canon, update the three bookkeeping files, name a consequence the writer didn't say.
+- **write back** · **reflect** — after an answer, before any new question: append canon, update the three files, name a consequence the writer didn't say.
 - **digest** — ≤3 lines: world, path, thin and empty pillars, open threads, since last session.
-- **target** — the hole scoring chose, citing an entity by name.
+- **target** — the hole scoring chose, naming an entity.
 - **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
 - **stop** — wait.
-- Off-rubric tangent: open the thread first, then follow it.
+- Off-rubric tangent: open the thread, then follow it.
 
 ## Scoring
 
@@ -44,8 +44,8 @@ nearest wins; name the path.
 want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 
 Candidates are existing entities or children. Never the same pillar twice running when another scores
-≥ `lopsidedness_floor`. Read the last `texture_cadence` `targeted:` lines in `log.md`: if none names
-`daily-life` or `voice-attention`, this turn is theirs.
+≥ `lopsidedness_floor`. If the last `texture_cadence` `targeted:` values name neither `daily-life` nor
+`voice-attention`, this turn is theirs.
 
 - Repeating established canon: no re-ask, no duplicate. If it differs, run the Contradiction beat —
   name both lines, resolve, append a `revised:` line quoting the superseded text; never annotate it.
@@ -55,7 +55,8 @@ Candidates are existing entities or children. Never the same pillar twice runnin
 ## Bookkeeping
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
-Each turn logs `provoked: <type>` and `targeted: <pillar>`; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only. At close or after 12 turns: 3–6 bullets of what was decided, then the next thread and why.
+`log.md` gets one machine line per turn: `- turn: <n> · provoked: <type> · targeted: <pillar>`; three
+of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only. At close or after 12 turns: 3–6 bullets of what was decided, then the next thread and why.
 
 Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `sarcasm`, the weights,
 `lopsidedness_floor`)

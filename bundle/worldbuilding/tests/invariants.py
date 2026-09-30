@@ -37,16 +37,31 @@ def turns_of(text):
     return [c for c in re.split(r'\n## turn \d+', body) if c.strip()]
 
 
-def log_sequence(text, n):
-    """Last n (targeted, provoked) pairs from the dumped world/log.md, in order."""
+MACHINE = re.compile(r'^-\s*turn:\s*\d+\s*·\s*provoked:\s*([a-z-,\s]+?)\s*·\s*targeted:\s*([a-z-]+)', re.M)
+
+
+def log_dump(text):
     m = re.search(r'--- (?:\./)?world/log\.md\n(.*?)(?=\n--- |\Z)', text, re.S)
-    if not m: return []
+    return m.group(1) if m else ''
+
+
+def log_sequence(text, n):
+    """(targeted, provoked) per turn from the machine lines R-9 requires - one line per turn.
+
+    Prose `provoked:` lines are a fallback only: before R-9 the fields arrived intermittently (one
+    `targeted:` in 14 log lines in one run, 15 in the next), which made cadence arithmetic compute
+    from a ledger with holes and report that as a clean pass.
+    """
+    log = log_dump(text)
+    mach = [(g.group(2), g.group(1).split(',')[-1].strip()) for g in MACHINE.finditer(log)]
+    if mach:
+        return (mach[-n:] if len(mach) >= n else mach), len(mach), 'machine'
     out = []
-    for line in m.group(1).split('\n'):
+    for line in log.split('\n'):
         tg = re.search(r'targeted:\s*([a-z-]+)', line)
         pv = re.findall(r'provoked:\s*([a-z-]+)', line)
         if tg or pv: out.append((tg.group(1) if tg else '?', pv[-1] if pv else '?'))
-    return out[-n:] if len(out) >= n else out
+    return (out[-n:] if len(out) >= n else out), len(out), 'prose' 
 
 
 def reads_per_turn(session_path, n):
@@ -84,11 +99,14 @@ def main():
     if not ts:
         print('  skip  no turns recorded (single-turn file or aborted run)'); return 0
     sess = path + '.session.jsonl' if os.path.exists(path + '.session.jsonl') else ''
-    LOG = log_sequence(text, len(ts))
+    LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
+    # computed up front: the cadence and rotation loops both consult it, and an earlier draft
+    # referenced it before assignment, which is a crash, not a verdict (UnboundLocalError)
+    holes = LOGSRC == 'machine' and NMACH < len(ts)
     eaten = [i for i, b in enumerate(ts) if 'INFRA-FAIL' in b]
     words, nq_all, targ, prov, nrecap, src = [], [], [], [], [], []
     print(f'  {len(ts)} turns | limit {limit}w | cadence {cad} | max {maxr} entity reads'
-          f' | log.md {len(LOG)} aligned' + (f' | {len(eaten)} turn(s) eaten by harness, not scored' if eaten else '')
+          f' | log.md: {NMACH} lines ({LOGSRC}) for {len(ts) - len(eaten)} scored turns' + (f' | {len(eaten)} turn(s) eaten by harness, not scored' if eaten else '')
           + (' | DEFAULTED: ' + ', '.join(fallback) if fallback else ''))
     rc = 0
     for i, b in enumerate(ts):
@@ -139,7 +157,9 @@ def main():
         win = targ[i:i + cad]
         if not any(t in TEXTURE for t in win) and '?' not in win:
             print(f'   texture not asked within {cad} turns ending at turn {i + cad} {win}'); rc |= 16
-    runs = [j + 1 for j in range(1, len(prov)) if prov[j] == prov[j-1] == prov[j-2] != '?'] if len(prov) >= 3 else []
+    if holes:
+        print('   (cadence/rotation suppressed - reported only as the hole above)')
+    runs = [j + 1 for j in range(1, len(prov)) if prov[j] == prov[j-1] == prov[j-2] != '?'] if len(prov) >= 3 and not holes else []
     if runs: print(f'   same provoked type 3 turns running, ending at {runs}'); rc |= 32
     same = [j + 1 for j in range(1, len(targ)) if targ[j] == targ[j-1] != '?']
     nlog = sum(1 for x in src if x == 'logged')
@@ -148,6 +168,9 @@ def main():
               f' reached lopsidedness_floor (all targets logged, so adjudicable)'); rc |= 64
     elif same:
         print(f'   same pillar in consecutive turns ending at {same} - see state note below')
+    if holes:
+        print(f'   BOOKKEEPING HOLE: {NMACH} machine log lines for {len(ts) - len(eaten)} scored turns'
+              f' - the cadence and rotation windows below are NOT trustworthy (R-9)'); rc |= 2
     if nlog < len(targ):
         # announce missing per-turn state whether or not it happened to cause a repeat, so a clean
         # looking run can never be read as "the consecutive rule was checked and passed"

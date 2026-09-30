@@ -52,11 +52,14 @@ Bookkeeping only; the score that uses these counts lives in `../SKILL.md`.
 - A pillar with no lines at all, or only `proposed:` lines, is **empty**.
 - 1–2 established lines: **thin**. 3 or more across 2 or more entities: **substantial**.
 - `daily-life` is the texture pillar; `voice-attention` is its character-side feed.
-- **Cadence is arithmetic on `log.md`, not a feeling.** Take the last `texture_cadence` entries'
-  `targeted:` values. If none is `daily-life` or `voice-attention`, the next turn belongs to texture
-  and outranks any gap or hook score. If the file is shorter than the window, count from the first
-  entry. Rotation alone does not satisfy this: twelve turns that each pick a different institution is
-  exactly how a world ends up with nine bridges and nothing to eat.
+- **Cadence is arithmetic on `log.md`, not a feeling.** Take `targeted:` from the last
+  `texture_cadence` machine lines. If none is `daily-life` or `voice-attention`, the next turn belongs
+  to texture and outranks any gap or hook score. If the file is shorter than the window, count from the
+  first line. Rotation alone does not satisfy this: twelve turns that each pick a different institution
+  is exactly how a world ends up with nine bridges and nothing to eat.
+- **A hole in the log is not a clean bill of health.** If there are fewer machine lines than turns, the
+  window cannot be computed. Do not conclude texture is satisfied: ask the texture question this turn
+  and say, in one clause, that the ledger lost track.
 
 ## Tier 2 · the ceiling — 9 child generators
 

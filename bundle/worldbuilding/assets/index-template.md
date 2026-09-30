@@ -57,8 +57,11 @@ bullets in those files, excluding any carrying `supersedes`; `proposed` = `- pro
 
 ## Log line shape (per turn, appended)
 
+- turn: <n> · provoked: <connection|constraint|cost|consequence|discovery|contradiction|stake|review> · targeted: <pillar>
 - decided: <what the writer settled>
-- provoked: <connection|constraint|cost|consequence|discovery|contradiction|stake|review> · targeted: <pillar>
+
+Exactly one machine line per turn, in order. Prose lines are for the writer; the machine line is for
+the next turn, which cannot remember otherwise.
 
 `targeted:` is not decoration. The rule "never the same pillar in consecutive turns when another
 candidate reaches `lopsidedness_floor`" cannot be evaluated without it, and by turn five the previous

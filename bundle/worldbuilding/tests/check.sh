@@ -80,6 +80,10 @@ method(){
   has "the body-read tripwire names the tunable (R-6)" "$S" 'reads_per_turn'
   has "cadence is computed from logged targets, not felt (R-8)" "$B/references/rubric.md" 'last .texture_cadence. entries|arithmetic on .log\.md.'
   has "body routes cadence to the log (R-8)" "$S" 'last .texture_cadence. .targeted:|targeted:. lines in .log.md'
+  has "bookkeeping demands one machine line per turn (R-9)" "$S" 'one machine line per turn'
+  # pattern must not start with '-' or grep reads it as an option (it did, and looked like a missing rule)
+  has "template gives the machine line shape (R-9)" "$B/assets/index-template.md" 'turn: <n> .*provoked'
+  has "rubric treats a ledger hole as unknown, not satisfied (R-9)" "$B/references/rubric.md" 'hole in the log'
   has "index-template carries the reads tunable" "$B/assets/index-template.md" 'reads_per_turn: [0-9]+'
   has "fixture carries the reads tunable" "$B/tests/fixtures/established/world/index.md" 'reads_per_turn: [0-9]+'
   for k in contradiction rebuild proposed 3; do grep -qi "$k" "$S" && ok "Review Focus rule: $k" || no "Review Focus rule missing: $k"; done
@@ -219,6 +223,7 @@ for i in range(5):
                                           'daily-life', 'voice-attention'][i]
     if mode == 'unlogged': t = ['history-periodisation', 'politics-power', 'daily-life',
                                'voice-attention', 'geography-routes'][i]
+    if mode == 'no-machine': t = tg[i]
     if mode == 'no-texture':  t = ['history-periodisation', 'politics-power', 'geography-routes',
                                    'institutions-law', 'ecology-resources'][i]
     if mode == 'provoked-repeat': p = 'connection'
@@ -227,10 +232,16 @@ for i in range(5):
     body = '**Digest.** ok.'
     if mode == 'long-turn' and i == 1: body = '**Digest.** ' + 'word ' * 200
     stop = f'**Stop.** `provoked: {p}'
-    stop += f' · targeted: {t}`' if mode != 'unlogged' else '`'
+    stop += f' · targeted: {t}`' if mode not in ('unlogged', 'no-machine') else '`'
     out += [f'## turn {i+1}', 'writer: an answer', body, f'**Target.** {t}.',
             stop, q, '- steady — one two three', '']
-open(path, 'w').write('\n'.join(out) + '## files after run\n')
+    # the log.md dump, in the R-9 machine shape, mirroring the turn targets so cadence probes stay
+    # meaningful; 'machine-hole' writes fewer lines than there are turns, which is the failure mode
+    # 'unlogged' and 'no-machine' both mean: no machine lines, so the tool must say it cannot see
+    lines = [] if mode in ('no-machine', 'unlogged') else range(1, (4 if mode == 'machine-hole' else 6))
+    log = ['## 2026-09-30 (session 5)'] + [f'- turn: {j} · provoked: {pv[j-1]} · targeted: {tg[j-1]}' for j in lines]
+    open(path, 'w').write('\n'.join(out) + '## files after run\n## world/ contents\n'
+                         + '--- ./world/log.md\n' + '\n'.join(log) + '\n')
 if int(sess):
     n = int(sess)
     recs = []
@@ -352,6 +363,17 @@ L3
   build_ev "$TMP/i.md" ok 2; printf '## files after run\n## world/ contents\n%s\n' "$(yes filler | head -2500 | tr '\n' ' ')" >> "$TMP/i.md"
   python3 "$B/tests/invariants.py" "$TMP/i.md" > "$TMP/i.out" 2>&1; rc=$?
   crash $rc && [ "$rc" = 0 ] && ! grep -qE 'turn 5: *[0-9]{4}w' "$TMP/i.out" && ok "selftest: trailing world/ dump stays out of the last turn" || no "selftest: file tail leaks into turn words (rc=$rc)"
+  # R-9: a ledger with holes must be announced, and the windows it can't compute must stay unscored
+  build_ev "$TMP/m1.md" ok 5; python3 "$B/tests/invariants.py" "$TMP/m1.md" >"$TMP/m1.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] && grep -q 'machine' "$TMP/m1.out" \
+    && ok "selftest: a complete machine log is read as machine, not prose" \
+    || no "selftest: complete machine log misread (rc=$rc)"
+  build_ev "$TMP/m2.md" machine-hole 5; python3 "$B/tests/invariants.py" "$TMP/m2.md" >"$TMP/m2.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'BOOKKEEPING HOLE' "$TMP/m2.out" \
+    && ok "selftest: 3 machine lines for 5 turns is announced as a hole, not a clean window" \
+    || no "selftest: a gapped ledger passed quietly (rc=$rc) - R-9 detection is inert"
+  grep -q 'suppressed' "$TMP/m2.out" && ok "selftest: windows are not scored across a ledger hole" \
+    || no "selftest: cadence was computed anyway, from a log with holes"
   build_ev "$TMP/h.md" ok 0; python3 "$B/tests/invariants.py" "$TMP/h.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 8)) = 8 ] && ok "selftest: no session log reads UNKNOWN, never silent" || no "selftest: invariants PASSes with no session log (rc=$rc)"
   rm -f "$TMP"/*.session.jsonl
