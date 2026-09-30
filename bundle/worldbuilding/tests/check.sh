@@ -108,7 +108,7 @@ multi(){
     python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?))
   done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
-    || no "multi-turn invariant breached (codes: $rc - 1 words, 2 appendix, 4 questions, 8 reads, 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
+    || no "multi-turn invariant breached (bitmask $rc: 1 words, 2 appendix, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
 }
 
 behavior(){
