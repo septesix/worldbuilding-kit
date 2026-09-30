@@ -27,6 +27,7 @@ RECAP     = re.compile(r'^\s*[-*] +(`[\w-]+`|\*\*|new |T-\d)')
 CLOSING   = re.compile(r'(?i)\*\*(session \d+ closed|what we decided|closing)|(?:session \d+ closed)')
 NEXTLINE  = re.compile(r'(?i)\*\*next ?(thread)?[:：]|next thread')
 QUOTED    = re.compile(r'"[^"]*"|`[^`]*`')
+BEAT      = re.compile(r'^\s*\*\*(write back|reflect|digest|target|question|stop)\b', re.I)
 
 
 def turns_of(text):
@@ -99,7 +100,13 @@ def main():
         recap = [l for l in body if BULLET.match(l) and (RECAP.match(l) or closing)]
         prose = [l for l in body if l not in opts and l not in recap]
         w = len(' '.join(prose).split())
-        nq = sum(len(QUOTED.sub('', l).split('?')) - 1 for l in prose if not BULLET.match(l))
+        # a question is the **Question.** beat, not a '?': reaction mode asks "What is wrong with
+        # them - name the line number and the thing it costs." which is one question and zero marks.
+        qb = [l for l in body if re.match(r'^\s*\*\*question\b', l.strip(), re.I)]
+        nq = len(qb) + sum(max(0, l.count('?') - 1) for l in qb)          # two fused in one beat = 2
+        nq += sum(len(QUOTED.sub('', l).split('?')) - 1 for l in prose
+                  if not BULLET.match(l) and not BEAT.match(l))          # a '?' hiding elsewhere
+        if closing and len(recap) >= 3: nq = max(nq, 1)                   # the close owes a recap, not a q
         txt = ' '.join(body).lower() + ' ' + ' '.join(LOG[i] if i < len(LOG) else ())
         tg = re.findall(r'targeted:\s*([a-z-]+)', txt)
         pv = re.findall(r'provoked:\s*([a-z-]+)', txt)
