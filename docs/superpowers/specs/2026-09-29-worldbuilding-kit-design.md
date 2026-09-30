@@ -468,3 +468,14 @@ resets. Cost if wrong: a review offered once every three sessions may read as na
 considers the world reviewed; the reset marker and the threshold are the two knobs, and `review` (asked)
 and `review-owed` (unprompted) are separate scenarios so the nagging case is measurable rather than
 argued.
+
+**R-15 (2026-09-30, operator decision)** — the review memo is an **appendix artifact** with its own
+limit: `memo_words` (default **120**, total across the five items), excluded from `words_per_turn` the
+same way candidate options (`option_words`, 18) and the close recap (≤6 bullets) already were. §3.1
+established the principle and this is its fourth instance: an artifact the contract *mandates* cannot
+also be charged against the budget for *conversation*, or the two limits mean nothing - the writer ends
+up told to be brief in a turn that is required to be long. Exemption without a ceiling is only a hiding
+place, so the memo is measured rather than forgiven: the longest on file was 203 words, which is a page,
+not a glance, and now fails. Cost if wrong: 120 words may cut a memo that legitimately needs to cite
+five contradictions; the knob is a tunable, and the item list is capped at five, so pressure resolves
+into "cite less, name the thread", not into a longer exemption.

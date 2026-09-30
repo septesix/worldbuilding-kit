@@ -596,6 +596,41 @@ L
     && ok "selftest: an undisciplined 'gap 3' is still checked against the table" \
     || no "selftest: value-only disclosure escapes the audit (rc=$rc) - I7's real form is unguarded"
 
+  # the memo's own ceiling. It is exempt from the turn budget for the same reason options are, so it
+  # needs a limit of its own or the exemption is just a hiding place - the longest memo on file is 203w
+  memo_ev(){ python3 - "$1" "$2" "$3" <<'L'
+import sys
+path, per, cap = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+bullets = '\n'.join('- item %d: %s' % (i, 'word ' * (per - 2)) for i in range(5))
+out = ['# x (skill) MULTI',
+       'label: commit=deadbe guidance=abcd1234 spec_rev=R-14 words_per_turn=170 texture_cadence=4 reads_per_turn=3',
+       '## transcript',
+       '## turn 1', 'writer: an answer', '**Digest.** ' + 'filler ' * 26, '**Target.** faith-myth.',
+       '**Memo** (review owed):', bullets,
+       '**Question.** Which crossing is oldest?', '**Stop.** `provoked: review \u00b7 targeted: daily-life`',
+       '- steady \u2014 one two three', '',
+       '## world/ contents', '--- ./world/index.md', 'tunables:', '  memo_words: %s' % cap, '',
+       '--- ./world/log.md', '## 2026-09-01 (session 1)', '- turn: 1 \u00b7 provoked: review \u00b7 targeted: daily-life']
+open(path, 'w').write('\n'.join(out))
+L
+}
+  memo_ev "$TMP/mm1.md" 12 120; python3 "$B/tests/invariants.py" "$TMP/mm1.md" >"$TMP/mm1.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] \
+    && ok "selftest: a 5-bullet memo inside memo_words passes with its turn counted clean" \
+    || no "selftest: a compliant memo fails (rc=$rc) - the exemption is not wired"
+  memo_ev "$TMP/mm2.md" 30 120; python3 "$B/tests/invariants.py" "$TMP/mm2.md" >"$TMP/mm2.out" 2>&1; rc=$?
+  { crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'memo 15' "$TMP/mm2.out"; } \
+    && ok "selftest: a 150-word memo fails on its own ceiling, not the turn cap" \
+    || no "selftest: an over-long memo hid inside the exemption (rc=$rc)"
+  memo_ev "$TMP/mm3.md" 30 200; python3 "$B/tests/invariants.py" "$TMP/mm3.md" >/dev/null 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] \
+    && ok "selftest: memo_words is read from the world index, not hardcoded" \
+    || no "selftest: memo_words in the index is decorative (rc=$rc)"
+  memo_ev "$TMP/mm4.md" 30 120; python3 "$B/tests/wordcount.py" "$TMP/mm4.md" 170 >"$TMP/mm4.out" 2>&1
+  grep -qE 'turn words \(limit 170\)' "$TMP/mm4.out" && ! grep -qE 'OVER +[2-9][0-9][0-9] turn' "$TMP/mm4.out" \
+    && ok "selftest: the memo is not counted as turn prose by wordcount either" \
+    || no "selftest: wordcount still folds the memo into turn words (single-turn runs misreport)"
+
   # I5: the review contract, both halves. One probe per failure mode, plus the reset that proves the
   # trigger is arithmetic on log.md and not a mood.
   rv(){ printf '%s' "$1" > "$TMP/rv.md"; python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rv.md" >"$TMP/rv.out" 2>&1; echo $?; }

@@ -126,6 +126,9 @@ file. Anything the computation cannot answer is said as unknown, never omitted i
 
 Then one line: what to do about it, as a thread reference, not a task list.
 
+The memo totals ≤ `memo_words` (120) and never counts against `words_per_turn`: it is an appendix, and
+an exempt artifact still needs a ceiling - the longest memo in the archive ran 180 words, which is a
+page, not a glance. Five items, one line each, citations over prose.
 **Log the review you gave.** The memo turn's machine line carries `provoked: review`. Without it the
 count never resets and the next session reviews again - the trigger is arithmetic, so it obeys the
 ledger and nothing else, least of all your memory of having just done this.

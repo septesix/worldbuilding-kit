@@ -168,6 +168,7 @@ def main():
     LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
     CAP, CAPSRC = beat_cap(text, lab.group(0) if lab else '')
     TABLE = coverage_table(text)
+    MEMO_CAP = wc.memo_cap(text)
     print(f'   beat budget {CAP}w ({CAPSRC})')
     # computed up front: the cadence and rotation loops both consult it, and an earlier draft
     # referenced it before assignment, which is a crash, not a verdict (UnboundLocalError)
@@ -196,7 +197,10 @@ def main():
         closing = bool(CLOSING.search(' '.join(lines)))
         opts  = [l for l in body if OPT.match(l)]
         recap = [l for l in body if BULLET.match(l) and (RECAP.match(l) or closing)]
-        prose = [l for l in body if l not in opts and l not in recap]
+        memo_l, body_rest = wc.memo_split(body)          # the memo is an appendix, not a monologue
+        opts = [l for l in body_rest if OPT.match(l)]
+        memo_w = sum(wc.wc_words(l) for l in memo_l)
+        prose = [l for l in body_rest if l not in opts and l not in recap]
         # matched line by line: joining the beats into one string would break the ^ anchor and read
         # the whole turn as one beat
         fat = []
@@ -231,6 +235,9 @@ def main():
         if is_infra:
             print(f'   turn {i+1}: (turn eaten by the harness - instrument failure, not scored)'); continue
         if w > limit: bad.append(f'words>{limit}'); rc |= 1
+        # the memo is excluded above, so it is checked here against its own ceiling - an exempt
+        # artifact with no limit of its own is only a hiding place for length
+        if memo_w > MEMO_CAP: bad.append(f'memo {memo_w}w > memo_words {MEMO_CAP}'); rc |= 2
         if any(wc.option_words(l) > option_cap(text) for l in opts):
             bad.append('option %dw > option_words %d'
                        % (max(wc.option_words(l) for l in opts), option_cap(text)))
