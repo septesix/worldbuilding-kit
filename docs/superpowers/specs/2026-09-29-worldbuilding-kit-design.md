@@ -407,3 +407,18 @@ line; where it is missing, they are reported as unscored rather than satisfied.
 Cost if wrong: one more mechanical line per turn in a file the writer may read as bookkeeping noise.
 Mitigated by shape: the line is short, fixed-form, and the prose that humans actually read stays where
 it was.
+
+**R-10 (2026-09-30, gate finding at 12 turns)** — `beat_budget` (default **45 words per labelled
+beat**) joins the tunables. `words_per_turn` measures the turn and not the shape of the turn: a beat can
+run 52 words inside a 155-word turn and the cap calls that compliant, which is how "light, witty,
+conversational" decays into a lecture that passes every test. Measured against beats, the fat on this
+project's own evidence sits in `target` (why this hole) and `write back` (what was filed) - the two
+beats the writer waits through without answering anything. Cost if wrong: a beat cap tight enough to
+slice a genuine digest in half; mitigated because the number is a tunable in `world/index.md` and the
+writer owns it, and the instrument names which beat broke rather than reporting a turn total.
+
+Related corrections found while implementing it: the close trigger (`turns_per_session`, default 12)
+existed in a single SKILL.md sentence and is now stated in `references/rubric.md` and carried as a
+tunable; and a self-test that mutated `references/voice.md` without backing it up left test markers in
+shipped guidance across four runs while reporting a green round-trip - now guarded by a debris check
+and a documented-default-equals-real-default check.

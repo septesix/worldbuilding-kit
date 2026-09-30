@@ -28,7 +28,7 @@ nearest wins; name the path.
 
 ## The turn
 
-- **write back** · **reflect** — after an answer, before any new question: append canon, update the three files, name a consequence the writer didn't say.
+- **write back** · **reflect** — after an answer, before any new question: append canon, update the three files, name a consequence the writer didn't say. Each beat stays inside `beat_budget` words.
 - **digest** — ≤3 lines: world, path, thin and empty pillars, open threads, since last session.
 - **target** — the hole scoring chose, naming an entity.
 - **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
@@ -56,8 +56,7 @@ Candidates are existing entities or children. Never the same pillar twice runnin
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
 `log.md` gets one machine line per turn: `- turn: <n> · provoked: <type> · targeted: <pillar>`; three
-of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only. At close or after 12 turns: 3–6 bullets of what was decided, then the next thread and why.
+of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only. At close: 3–6 recap bullets of what was decided, then the next thread.
 
-Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `sarcasm`, the weights,
-`lopsidedness_floor`)
+Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `beat_budget`, weights, floor)
 are read from `world/index.md` and edited there.

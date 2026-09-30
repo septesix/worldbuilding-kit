@@ -37,6 +37,16 @@ templates(){
   has "index template has Pillar coverage section" "$T/index-template.md" '^## Pillar coverage'
   has "index template has Hottest threads" "$T/index-template.md" '^## Hottest threads'
   has "index template carries tunables" "$T/index-template.md" 'words_per_turn'
+  has "close trigger stated in the rubric" "$B/references/rubric.md" 'Close at .turns_per_session'
+  has "beat budget stated in the rubric" "$B/references/rubric.md" 'per-beat cap|beat_budget'
+  has "beat budget is a tunable" "$T/index-template.md" 'beat_budget:'
+  has "beat budget named in SKILL" "$B/SKILL.md" 'beat_budget'
+  local t missing=0
+  for t in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session; do
+    n=$(grep -rl "$t" "$B/SKILL.md" "$B/references" "$B/assets" "$B/tests/fixtures/established/world/index.md" 2>/dev/null | wc -l)
+    [ "$n" -ge 3 ] || { missing=1; no "tunable $t appears in only $n places - a rule with no home"; }
+  done
+  [ $missing = 0 ] && ok "every tunable is named in template, fixture and guidance"
   local ln; ln=$(awk '/^## Entities/{print NR; exit}' "$T/index-template.md"); [ "$ln" -lt 60 ] && ok "entity table at line $ln (<60)" || no "entity table at line $ln, not <60"
   grep -q '^## Canon' "$T/entity-template.md" && ok "entity template has Canon" || no "entity template lacks ## Canon"
   grep -q 'proposed:' "$T/entity-template.md" && ok "entity template shows provenance" || no "no proposed: provenance"
@@ -71,6 +81,30 @@ voice(){
 method(){
   local S="$B/SKILL.md"; [ -f "$S" ] || { no "bundle SKILL.md missing"; return; }
   local w; w=$(wc -w < "$S"); [ "$w" -lt 500 ] && ok "bundle SKILL.md $w words (<500)" || no "bundle SKILL.md $w words"
+  # a documented default must equal the real default. voice.md said 160 for two steps after the
+  # default became 170, because a self-test restored the file with `git checkout --` and ate the
+  # uncommitted edit; nothing compared the two numbers, so nothing noticed.
+  local tv d
+  for tv in words_per_turn texture_cadence reads_per_turn; do
+    d=$(awk -v k="$tv" '$1==k":"{gsub(/[^0-9]/,"",$2); print $2; exit}' "$B/assets/index-template.md")
+    if [ "$tv" = words_per_turn ]; then
+      grep -q "default $d" "$B/references/voice.md" && ok "$tv documented default matches the template ($d)" \
+        || no "$tv: voice.md states a default other than the template's $d"
+    else
+      # the real risk is two copies of a default disagreeing, not the phrasing around them
+      local fx; fx=$(awk -v k="$tv" '$1==k":"{gsub(/[^0-9]/,"",$2); print $2; exit}' "$B/tests/fixtures/established/world/index.md")
+      [ "$fx" = "$d" ] && ok "$tv: template and fixture agree ($d)" || no "$tv: template says $d, fixture says $fx"
+      grep -rqE "$tv|[0-9] (turns|bodies) a turn" "$B/references" && ok "$tv named in guidance" \
+        || no "$tv never named in guidance"
+    fi
+  done
+  # test debris must never reach shipped guidance: a probe that mutates references/ and fails to
+  # restore leaves its marker in the file the model reads. This is the guard that was missing.
+  local g debris=0
+  for g in "$S" "$B/references/"*.md "$B/assets/"*.md; do
+    grep -qE 'probe -->|SELFTEST|<!-- (mutation|probe)' "$g" && { debris=1; no "guidance carries test debris: ${g#"$REPO"/}"; }
+  done
+  [ $debris = 0 ] && ok "no test debris in shipped guidance (SKILL, references, assets)"
   grep -qi 'empty' "$S" && grep -qi 'gap_weight' "$S" && ok "gap_weight polarity documented" || no "gap_weight polarity missing"
   has "write boundary names world/" "$S" 'world/'
   # R-4: the consecutive-pillar rule is only obeyable if the target is recorded
@@ -395,11 +429,49 @@ L3
   python3 "$B/tests/wordcount.py" "$TMP/both.md" 160 >/dev/null 2>&1
   [ $? = 2 ] && ok "selftest: wordcount separates turn from appendix failures" || no "selftest: wordcount cannot say which limit rang"
 
+  # the beat budget must bite on the bloated beat and name it, and stay quiet on a compliant one
+  beat_ev(){ python3 - "$1" "$2" "$3" <<'L'
+import sys
+path, kind, cap = sys.argv[1], sys.argv[2], sys.argv[3]
+fat = 'word ' * 60
+lean = 'word ' * 30
+b = fat if kind == 'fat' else lean
+out = ['# x (skill) MULTI',
+       'label: commit=deadbe guidance=abcd1234 spec_rev=R-9 words_per_turn=170 texture_cadence=4 reads_per_turn=3']
+for i in range(2):
+    out += [f'## turn {i+1}', 'writer: an answer',
+            '**Digest.** ' + lean, '**Target.** ' + lean,
+            '**Write back.** ' + b, '**Reflect.** ' + lean,
+            '**Question.** Which crossing is oldest?', '**Stop.** `provoked: cost \u00b7 targeted: geography-routes`',
+            '- steady \u2014 one two three', '']
+out += ['## world/ contents', '--- ./world/index.md', 'tunables:', f'  beat_budget: {cap}', '']
+out += ['- turn: 1 \u00b7 provoked: cost \u00b7 targeted: geography-routes',
+        '- turn: 2 \u00b7 provoked: consequence \u00b7 targeted: daily-life', '']
+open(path, 'w').write('\n'.join(out))
+L
+}
+  beat_ev "$TMP/b1.md" fat 45; python3 "$B/tests/invariants.py" "$TMP/b1.md" >"$TMP/b1.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 1)) = 1 ] && grep -q 'write back 60w > beat 45' "$TMP/b1.out" \
+    && ok "selftest: the beat budget bites the bloated beat and names it" \
+    || no "selftest: a 60-word beat inside a legal turn went unreported (rc=$rc) - beat budget inert"
+  beat_ev "$TMP/b2.md" lean 45; python3 "$B/tests/invariants.py" "$TMP/b2.md" >"$TMP/b2.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 1)) = 0 ] && grep -q 'beat budget 45' "$TMP/b2.out" \
+    && ok "selftest: 30-word beats pass - the cap is not invented from thin air" \
+    || no "selftest: compliant beats flagged (rc=$rc) - the beat rule is broken"
+  beat_ev "$TMP/b3.md" lean 20; python3 "$B/tests/invariants.py" "$TMP/b3.md" >"$TMP/b3.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 1)) = 1 ] && grep -q 'beat 20' "$TMP/b3.out" \
+    && ok "selftest: beat budget is read from the world index, not hardcoded (20w bites)" \
+    || no "selftest: beat_budget in the dumped index was ignored (rc=$rc) - the tunable is decorative"
+
   # guidance_key() must move when guidance moves, and NOT move when only a test moves
   local k1 k2; k1=$(guidance_key)
+  cp "$B/references/voice.md" "$TMP/voice.bak"
   printf '\n<!-- probe -->\n' >> "$B/references/voice.md"; k2=$(guidance_key)
   [ "$k1" != "$k2" ] && ok "selftest: guidance key tracks a change to references/" || no "selftest: guidance key ignores edited guidance - evidence would be mislabelled"
-  git -C "$REPO" checkout -- "$B/references/voice.md" 2>/dev/null || true
+  # the BACKUP LINE WAS MISSING for four runs: the marker was appended, the restore no-op'd (|| true hid
+  # it), voice.md accumulated four '<!-- probe -->' blocks the model then read as guidance, and the
+  # suite reported a key round-trip it had not performed
+  cp "$TMP/voice.bak" "$B/references/voice.md"
   [ "$(guidance_key)" = "$k1" ] && ok "selftest: guidance key restored with the file" || no "selftest: guidance key unstable across a restore"
   k2=$( { cd "$REPO" && git rev-parse HEAD:bundle/worldbuilding/tests | cksum; } | awk '{printf "%08x",$1}')
   [ "$k1" != "$k2" ] && ok "selftest: guidance key is not the bundle tree hash (tests excluded)" || no "selftest: guidance key degenerated to a bundle hash"

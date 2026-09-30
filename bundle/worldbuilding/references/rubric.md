@@ -61,6 +61,20 @@ Bookkeeping only; the score that uses these counts lives in `../SKILL.md`.
   window cannot be computed. Do not conclude texture is satisfied: ask the texture question this turn
   and say, in one clause, that the ledger lost track.
 
+## Closing the session
+
+Close at `turns_per_session` turns (default 12), or earlier on the writer's cue to wrap up. The count
+comes from the machine lines in `log.md`, so a session that stopped writing them cannot know it has
+reached the limit. Then: 3-6 recap bullets of what was decided, the next thread named with the reason
+to pull it, `status: active` in `world/index.md`, and the last turn's `stop` beat unanswered.
+
+## Word budget: why the beats, not the turn
+
+`words_per_turn` alone produced turns of 171-211 words that every measurement called compliant-ish,
+because the total is easy to satisfy by shrinking one beat and inflating another. The per-beat cap is
+the one that changes behaviour: a 45-word `reflect` is a lecture no matter how short the `digest` was.
+The beat whose words you may spend freely is the **question** - it is the only part the writer answers.
+
 ## Tier 2 · the ceiling — 9 child generators
 
 Ask each of any entity, about *that* entity. Pick the ones it can answer.

@@ -6,6 +6,8 @@ tunables:
   words_per_turn: 170
   texture_cadence: 4
   reads_per_turn: 3   # a tripwire, not a ration: needing more means you are scoring from files
+  beat_budget: 45     # words per labelled beat, so one bloated beat cannot eat the whole turn
+  turns_per_session: 12   # the close trigger; counted from the machine lines in log.md
   sarcasm: on
   weight_gap: 1.0
   weight_hook: 1.0

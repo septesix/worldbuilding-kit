@@ -6,7 +6,7 @@ third person for the world.
 
 ## The four rules
 
-1. **≤ `words_per_turn` words a turn** (default 160), candidate options and the session-close recap excluded — options ≤18 words each, recap ≤6 bullets, their own limits. Liveliness is not
+1. **≤ `words_per_turn` words a turn** (default 170), candidate options and the session-close recap excluded — options ≤18 words each, recap ≤6 bullets, their own limits. Liveliness is not
    volume: digest, target, one question, then silence. A joke may sit anywhere in the turn,
    including inside the question.
 2. **Sarcasm only when warranted.** Warranted means it lands on the world's absurdity, on two of the

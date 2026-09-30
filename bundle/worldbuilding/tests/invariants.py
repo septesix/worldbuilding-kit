@@ -29,6 +29,21 @@ NEXTLINE  = re.compile(r'(?i)\*\*next ?(thread)?[:：]|next thread')
 QUOTED    = re.compile(r'"[^"]*"|`[^`]*`')
 BEAT      = re.compile(r'^\s*\*\*(write back|reflect|digest|target|question|stop)\b', re.I)
 
+# words_per_turn alone told me a turn ran 211 words and left me guessing where: the total is easy to
+# keep by starving one beat and inflating another, so a compliant-looking turn can still be a monologue.
+# The per-beat cap names the bloated beat, which is the part worth rewriting.
+BEAT_WORD = re.compile(r'^\s*\*\*(write back|reflect|digest|target|question|stop)\b[^*]*\*\*\s*(.*)$',
+                       re.I | re.M)
+BEAT_CAP_DEFAULT = 45
+
+
+def beat_cap(text, label):
+    m = re.search(r'beat_budget:\s*(\d+)', text)
+    if m: return int(m.group(1)), 'the dumped world/index.md'
+    m = re.search(r'beat_budget=(\d+)', label)
+    if m: return int(m.group(1)), 'the run label'
+    return BEAT_CAP_DEFAULT, 'default (no beat_budget in the world index)'
+
 
 def turns_of(text):
     if '## turn ' not in text: return []
@@ -100,6 +115,8 @@ def main():
         print('  skip  no turns recorded (single-turn file or aborted run)'); return 0
     sess = path + '.session.jsonl' if os.path.exists(path + '.session.jsonl') else ''
     LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
+    CAP, CAPSRC = beat_cap(text, lab.group(0) if lab else '')
+    print(f'   beat budget {CAP}w ({CAPSRC})')
     # computed up front: the cadence and rotation loops both consult it, and an earlier draft
     # referenced it before assignment, which is a crash, not a verdict (UnboundLocalError)
     # R-9 detection. Suppression is proportional: a ledger that is whole but for the close turn is
@@ -125,6 +142,14 @@ def main():
         opts  = [l for l in body if OPT.match(l)]
         recap = [l for l in body if BULLET.match(l) and (RECAP.match(l) or closing)]
         prose = [l for l in body if l not in opts and l not in recap]
+        # matched line by line: joining the beats into one string would break the ^ anchor and read
+        # the whole turn as one beat
+        fat = []
+        for l in prose:
+            mb = BEAT_WORD.match(l)
+            if mb:
+                bw = len(re.findall(r"[\w'’]+", mb.group(2)))
+                if bw > CAP: fat.append((mb.group(1).lower(), bw))
         w = len(' '.join(prose).split())
         # a question is the **Question.** beat, not a '?': reaction mode asks "What is wrong with
         # them - name the line number and the thing it costs." which is one question and zero marks.
@@ -153,6 +178,9 @@ def main():
         if w > limit: bad.append(f'words>{limit}'); rc |= 1
         if any(len(l.split()) > 18 for l in opts): bad.append(f'option {max(len(l.split()) for l in opts)}w>18'); rc |= 2
         if len(recap) > 6: bad.append('recap>6'); rc |= 2
+        # the beat cap is the second half of the word rule: a turn inside words_per_turn can still be
+        # one 90-word monologue beat, and that is the shape that stops sounding like conversation
+        for nm, bw in fat: bad.append(f'{nm} {bw}w > beat {CAP}'); rc |= 1
         # the close turn owes a recap and the next thread, not another question - §3.1. Scoring it for
         # "0 questions" failed a turn for doing the thing the contract asks for at the end of a session.
         if nq != 1 and not (closing and len(recap) >= 3): bad.append(f'{nq} questions'); rc |= 4
