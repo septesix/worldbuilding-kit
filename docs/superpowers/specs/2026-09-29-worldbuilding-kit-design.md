@@ -383,3 +383,15 @@ whose deepest turns measured 164 and 169. Stated plainly because the pattern is 
 R-2: this is a budget set just above the observed maximum, so it will stop biting on exactly the turns
 that motivated it unless the 12-turn run shows the ceiling is elsewhere. The test that settles it is
 turn-level distribution at depth, not another single-turn sample.
+
+**R-8 (2026-09-30, gate finding at 12 turns)** — Texture cadence is computed from the `targeted:`
+values of the last `texture_cadence` entries in `log.md`; if none names `daily-life` or
+`voice-attention`, that turn belongs to texture and outranks any gap or hook score. No new state is
+introduced - R-4 already records the target, so this rule is derivable and was only unkept because
+nothing told the skill to look. Root cause is the same as R-4's in a different dress: **a rule the skill
+cannot count is a rule it cannot keep.** Observed failure at 12 turns: rotation working perfectly (no
+pillar twice running) while texture was asked once, at turn 1, missing 7 of 8 windows - rotation is
+precisely what starves cadence, because every turn picks a different non-texture pillar.
+Cost if wrong: texture turns arrive by arithmetic rather than tact, so a session in a grim stretch gets
+a food question because a counter said so. Accepted - the alternative is worlds with nine bridges and
+nothing to eat, which is the failure this whole design exists to prevent.

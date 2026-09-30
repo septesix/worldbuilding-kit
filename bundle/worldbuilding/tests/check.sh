@@ -78,6 +78,8 @@ method(){
   has "log line shape documented in the template" "$B/assets/index-template.md" 'targeted: <pillar>'
   # R-6: the read cap became a scale tripwire wired to a tunable, in guidance, template and fixture
   has "the body-read tripwire names the tunable (R-6)" "$S" 'reads_per_turn'
+  has "cadence is computed from logged targets, not felt (R-8)" "$B/references/rubric.md" 'last .texture_cadence. entries|arithmetic on .log\.md.'
+  has "body routes cadence to the log (R-8)" "$S" 'last .texture_cadence. .targeted:|targeted:. lines in .log.md'
   has "index-template carries the reads tunable" "$B/assets/index-template.md" 'reads_per_turn: [0-9]+'
   has "fixture carries the reads tunable" "$B/tests/fixtures/established/world/index.md" 'reads_per_turn: [0-9]+'
   for k in contradiction rebuild proposed 3; do grep -qi "$k" "$S" && ok "Review Focus rule: $k" || no "Review Focus rule missing: $k"; done
