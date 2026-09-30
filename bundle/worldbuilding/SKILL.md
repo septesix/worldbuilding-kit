@@ -21,14 +21,13 @@ nearest wins; name the path.
 ## Modes
 
 - **`new`**, no `world/` — one premise question; then scaffold `index.md`, `threads.md`, 5–8
-  entity files from `assets/*-template.md`, all `proposed:`, not fork-lists.
-- **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild from the files and
-  announce it. ≤ `reads_per_turn` bodies, else you are scoring from files.
-- **`review`**, asked — coverage, orphans, `provoked:` distribution, threads open ≥3 turns.
+  entity files from `assets/*-template.md`, all `proposed:`.
+- **`continue`**, `world/` exists — read `index.md`; missing or stale → rebuild and announce it. ≤ `reads_per_turn` bodies, else you score from files.
+- **`review`** — asked, or as bookkeeping says: the five-item memo (`references/rubric.md`).
 
 ## The turn
 
-- **write back** · **reflect** — after an answer, before any new question: append canon, update the three files, name a consequence the writer didn't say. Each beat stays inside `beat_budget` words.
+- **write back** · **reflect** — after an answer, before asking again: append canon, update the three files, name a consequence the writer didn't say. Each beat stays inside `beat_budget` words.
 - **digest** — ≤3 lines: world, path, thin and empty pillars, open threads, since last session.
 - **target** — the hole scoring chose, naming an entity.
 - **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
@@ -57,8 +56,9 @@ Never the same pillar twice running when another scores
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
 `log.md` gets one machine line per turn: `- turn: <n> · provoked: <type> · targeted: <pillar>`; three
-of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
-`world/`; supersede in place. At close: 3–6 recap bullets of what was decided, then the next thread.
+of one type forces a switch, and at 3 sessions since the last `provoked: review`, end the turn with
+the memo. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
+`world/`; supersede in place. At close: 3–6 recap bullets.
 
 Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `beat_budget`, weights, floor)
 are read from `world/index.md` and edited there.

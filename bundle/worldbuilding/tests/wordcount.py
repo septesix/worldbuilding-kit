@@ -14,6 +14,15 @@ turn, which is what the first version of this tool did (see spec revision R-3).
 import sys, re
 
 OPT   = re.compile(r'^\s*[-*] ?\*{0,2}(steady|sharp|strange)\b\*{0,2}\s*[—:-]?', re.I)
+# the option is what the writer reads, not the markup presenting it. Counting the bullet, the label and
+# the em dash added a flat +3 to every option and turned a compliant 17-word line into a "20-word"
+# breach - F9's twin: an instrument reporting a finding it manufactured itself.
+OPT_TEXT = re.compile(r'^\s*[-*] ?\*{0,2}(?:steady|sharp|strange)\b\*{0,2}\s*[—:\-]?\s*(.*)$', re.I)
+
+
+def option_words(line):
+    m = OPT_TEXT.match(line.strip())
+    return len(re.findall(r"[\w'’]+", m.group(1) if m else line))
 RECAP = re.compile(r'^\s*[-*] +(`[\w-]+`|\*\*|new |T-\d)', re.I)     # close-recap bullet
 CLOSE = re.compile(r'^\s*\*\*(what we decided|decided|session \d|close)', re.I)
 
@@ -27,7 +36,7 @@ def measure(path):
         (opts if OPT.match(l) else recap if (RECAP.match(l) or CLOSE.match(l)) else turn).append(l)
     w = len(' '.join(turn).split())
     if w <= 10 and not opts and not recap: return None      # empty/aborted transcript: no verdict
-    return w, [len(l.split()) for l in opts], len(recap)
+    return w, [option_words(l) for l in opts], len(recap)
 
 if __name__ == '__main__':
     files = [a for a in sys.argv[1:] if not a.isdigit()]

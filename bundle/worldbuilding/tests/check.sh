@@ -58,6 +58,13 @@ templates(){
   has "a new-world scenario exists" "$B/tests/prompts/new-world.txt" 'canal city'
   has "the new-world scenario is wired into the harness" "$B/tests/run.sh" 'new-world'
   has "seedcheck wired into the single-turn harness" "$B/tests/run.sh" 'seedcheck'
+  has "review trigger named in SKILL (I5)" "$B/SKILL.md" 'provoked: review'
+  has "the memo is named in SKILL (I5)" "$B/SKILL.md" 'the memo'
+  has "review trigger lives in the per-turn procedure (I5)" "$B/SKILL.md" '3 sessions since the last .provoked: review'
+  has "the five memo items are enumerated in the rubric (I5)" "$B/references/rubric.md" 'treadmill'
+  has "review contract computed in the rubric (I5)" "$B/references/rubric.md" '## Review mode'
+  has "reviewcheck wired into the harness" "$B/tests/run.sh" 'reviewcheck'
+  has "a review scenario exists (asked)" "$B/tests/prompts/review.txt" 'review'
   has "canoncheck wired into the single-turn harness" "$B/tests/run.sh" 'canoncheck'
   has "canoncheck wired into the multi-turn harness" "$B/tests/multiturn.sh" 'canoncheck'
   # a rule may live in SKILL or in references - what is not allowed is living in neither. SKILL alone
@@ -203,6 +210,14 @@ behavior(){
   # Three states are named separately: untested, tested-and-failed, tested-and-good.
   local nw sbad; nw=$(printf '%s\n' $sel | grep -c 'new-world-skill')
   sbad=$(grep -l 'SEED-FAIL' $sel 2>/dev/null | wc -l)
+  local rvn rvb; rvn=$(printf '%s\n' $sel | grep -cE 'review(-owed)?-skill')
+  # an aborted run is not a pass and not a breach; grading it as either is the same lie twice
+  local rvg; rvg=$(grep -l 'NOT-GRADED\|INFRA-FAIL' $sel 2>/dev/null | wc -l)
+  rvb=$(grep -lE 'REVIEW-OWED|REVIEW-FAIL' $sel 2>/dev/null | wc -l)
+  if [ "${rvn:-0}" = 0 ]; then echo "  note  behavior: no review run under this guidance key - I5 untested by these artifacts"
+  elif [ "${rvn}" = "${rvg}" ]; then echo "  note  behavior: $rvn review run(s) recorded but none gradeable (aborted or logless) - I5 stays open"
+  elif [ "${rvb:-0}" != 0 ]; then no "$rvb of $rvn review run(s) breached the review contract"
+  else ok "the recorded review run(s) met the contract (trigger and five-item memo)"; fi
   if [ "${nw:-0}" = 0 ]; then echo "  note  behavior: no new-world run under this guidance key - I4 untested by these artifacts"
   elif [ "${sbad:-0}" != 0 ]; then no "$sbad of $nw new-world run(s) failed the seed band (see SEED-FAIL in the evidence)"
   else ok "the recorded new-world run seeded inside the band (5-8 entities, spread, texture, threads)"; fi
@@ -579,6 +594,134 @@ L
   { [ $((rc & 2)) = 2 ] && grep -q 'gap_weight 3 contradicts index' "$TMP/s4.out"; } \
     && ok "selftest: an undisciplined 'gap 3' is still checked against the table" \
     || no "selftest: value-only disclosure escapes the audit (rc=$rc) - I7's real form is unguarded"
+
+  # I5: the review contract, both halves. One probe per failure mode, plus the reset that proves the
+  # trigger is arithmetic on log.md and not a mood.
+  rv(){ printf '%s' "$1" > "$TMP/rv.md"; python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rv.md" >"$TMP/rv.out" 2>&1; echo $?; }
+  rvhdr(){ local n=$1 reset=${2:-0} body=''; for k in $(seq 1 "$n"); do body+=$(printf '\n## 2026-09-0%s (session %s)\n- turn: %s \u00b7 provoked: cost \u00b7 targeted: faith-myth' "$k" "$k" "$k"); [ "$reset" = 1 ] && [ "$k" = 2 ] && body+=$(printf '\n- turn: 2 \u00b7 provoked: review \u00b7 targeted: faith-myth'); done; printf '%s\n' "$body"; }
+  MEMO='**Review.** Consistency memo: - contradictions: none found, by two checks - orphans: one, the lock-keeper links one way - texture-less pillars: power-systems has six facts and no kitchen - unvetted proposed: 12 lines waiting on you - treadmill: five of the last eight turns provoked cost'
+  r=$(rv "# x$(rvhdr 2)
+## transcript
+writer: continue"; )
+  [ "$r" = 0 ] && ok "selftest: two sessions in, no review owed - and not counted as a pass" \
+    || no "selftest: a not-yet-due world scored as a failure (rc=$r)"
+  r=$(rv "# x$(rvhdr 4)
+## transcript
+writer: continue"); [ "$r" = 1 ] && ok "selftest: four sessions with no review is REVIEW-OWED (trigger fires)" \
+    || no "selftest: the owed-review case passed quietly (rc=$r) - I5's trigger is inert"
+  r=$(rv "# x$(rvhdr 4 1)
+## transcript
+writer: continue
+$MEMO"); [ "$r" = 0 ] && ok "selftest: a delivered review resets the count, and a full memo passes" \
+    || no "selftest: a complete review after the reset fails (rc=$r)"
+  r=$(rv "# x$(rvhdr 4 1)
+## transcript
+writer: continue
+**Review.** Memo: - contradictions: none - orphans: two - proposed: some lines unvetted")
+  { [ "$r" = 2 ] && grep -q 'texture-less pillars, treadmill' "$TMP/rv.out"; } \
+    && ok "selftest: a three-item memo fails with the missing two named, not a shrug" \
+    || no "selftest: an incomplete memo passed (rc=$r) - the five items are decorative"
+
+  cat > "$TMP/rvinfra.md" <<'RV'
+# x (skill) MULTI
+## 2026-09-01 (session 3)
+- turn: 9 · provoked: cost · targeted: faith-myth
+INFRA-FAIL: turn 2 timed out
+RV
+  python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvinfra.md" >"$TMP/rvinfra.out" 2>&1; rc=$?
+  [ "$rc" = 4 ] && grep -q NOT-GRADED "$TMP/rvinfra.out" \
+    && ok "selftest: an aborted run is NOT-GRADED, neither a pass nor a breach" \
+    || no "selftest: an aborted run was scored as evidence (rc=$rc)"
+  # heredocs, not printf '%s\n' with escapes in the ARGUMENT: printf leaves \\n literal there, so the
+  # fixture file was one long line and no session header matched - the probe failed, not the tool
+  cat > "$TMP/rvthin.md" <<'RV'
+# x (skill) MULTI
+## transcript
+writer: continue
+RV
+  cat > "$TMP/rvlog.md" <<'RV'
+## 2026-09-01 (session 1)
+## 2026-09-02 (session 2)
+## 2026-09-03 (session 3)
+## 2026-09-04 (session 4)
+- turn: 4 · provoked: cost · targeted: faith-myth
+RV
+  python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvthin.md" --log "$TMP/rvlog.md" >"$TMP/rvthin.out" 2>&1; rc=$?
+  [ "$rc" = 1 ] && ok "selftest: sessions are read from the log, not the evidence dump (ordering bug)" \
+    || no "selftest: reviewcheck graded a half-written artifact and said 'not owed' (rc=$rc)"
+
+  # the marker case, found on real evidence: an excellent memo that forgot to log itself
+  cat > "$TMP/rvnomark.md" <<'RV'
+# x (skill) MULTI
+## transcript
+writer: continue
+**Memo** (review owed, sessions 1-4):
+- contradictions: none found, by two checks
+- orphans: one
+- texture-less pillars: power-systems has six facts and no kitchen
+- unvetted proposed: 12 lines waiting
+- treadmill: five of the last eight provoked cost
+**Stop.** `provoked: cost \u00b7 targeted: faith-myth`
+## world/ contents
+--- ./world/log.md
+## 2026-09-01 (session 1)
+## 2026-09-02 (session 2)
+## 2026-09-03 (session 3)
+## 2026-09-04 (session 4)
+- turn: 4 \u00b7 provoked: cost \u00b7 targeted: faith-myth
+RV
+  python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvnomark.md" >"$TMP/rvnomark.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 4)) = 4 ] \
+    && ok "selftest: a complete memo that never logged provoked: review still fails" \
+    || no "selftest: an unlogged review reads as done (rc=$rc) - next session reviews again"
+  cat > "$TMP/rvalt.md" <<'RV'
+# x (skill) MULTI
+## transcript
+writer: continue
+**Memo** (review owed):
+1. contradictions - two, cited
+2. orphans - one
+3. texture-less - fifteen pillars carry canon, one pair of hands carries it
+4. unvetted proposed - none by the rule
+5. treadmill - unverifiable, the ledger is short
+## world/ contents
+--- ./world/log.md
+## 2026-09-01 (session 1)
+## 2026-09-02 (session 2)
+## 2026-09-03 (session 3)
+RV
+  python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvalt.md" >"$TMP/rvalt.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] \
+    && ok "selftest: a memo numbered 1-5 passes; the detector matches the artifact, not a heading" \
+    || no "selftest: a complete memo failed on formatting (rc=$rc: $(head -2 "$TMP/rvalt.out" | tr '\n' ' '))"
+
+  # option length: the cap counts the option, not the '- steady —' that labels it. The first version
+  # of this instrument added a flat +3 to every line and manufactured breaches (F9's twin).
+  opt_ev(){ python3 - "$1" "$2" "$3" <<'L'
+import sys
+path, words, cap = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+body = 'word ' * words
+out = ['# x (skill) MULTI',
+       'label: commit=deadbe guidance=abcd1234 spec_rev=R-13 words_per_turn=170 texture_cadence=4 reads_per_turn=3',
+       '## transcript', '## turn 1', 'writer: an answer', '**Digest.** Filed.', '**Target.** faith-myth.',
+       '**Question.** Which crossing is oldest?',
+       '- steady \u2014 ' + body.strip(), '- sharp \u2014 one two three', '',
+       '## files after run', '## world/ contents', '--- ./world/index.md', 'tunables:', f'  option_words: {cap}', '']
+open(path, 'w').write('\n'.join(out))
+L
+}
+  opt_ev "$TMP/o1.md" 18 18; python3 "$B/tests/invariants.py" "$TMP/o1.md" >"$TMP/o1.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 0 ] && ok "selftest: an 18-word option passes with its label counted out (21 tokens)" \
+    || no "selftest: markup is still counted as words (rc=$rc) - the +3 inflation is back"
+  python3 "$B/tests/wordcount.py" "$TMP/o1.md" 170 >"$TMP/o1w.out" 2>&1
+  grep -q 'longest 18' "$TMP/o1w.out" && ok "selftest: wordcount reports the option, not the bullet" \
+    || no "selftest: wordcount still reports label tokens ($(grep -o 'longest [0-9]*' "$TMP/o1w.out"))"
+  opt_ev "$TMP/o2.md" 19 18; python3 "$B/tests/invariants.py" "$TMP/o2.md" >"$TMP/o2.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'option 19w' "$TMP/o2.out" \
+    && ok "selftest: a genuinely long option still fails" || no "selftest: the fix swallowed real breaches (rc=$rc)"
+  opt_ev "$TMP/o3.md" 14 12; python3 "$B/tests/invariants.py" "$TMP/o3.md" >"$TMP/o3.out" 2>&1; rc=$?
+  crash $rc && [ $((rc & 2)) = 2 ] && ok "selftest: option_words is read from the world, not hardcoded" \
+    || no "selftest: option_words in the index is decorative (rc=$rc)"
 
   # I4: the seed validator must bite in both directions, on synthetic worlds it builds itself
   seed_mk(){ python3 - "$1" "$2" "$3" "$4" <<'L'

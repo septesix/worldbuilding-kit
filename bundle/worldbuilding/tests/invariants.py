@@ -5,7 +5,7 @@
 
 Exit is a bitmask, and shell status is ONE BYTE, so nothing above 128 exists:
   1  a turn exceeded words_per_turn          16  texture_cadence window missed
-  2  an appendix limit (options >18, recap >6, close contract unmet)   32  same provoked type 3 running
+  2  an appendix limit (options > option_words, recap > 6, close contract, scoring)   32  provocation
   4  not exactly one question in a turn      64  same pillar in CONSECUTIVE turns
   8  entity reads over reads_per_turn        128 the instrument crashed (never a finding)
 
@@ -15,6 +15,7 @@ evening: reads that counted edits, tunables that silently fell back to defaults 
 was blank, and a close detector that only recognised bullets shaped like `- slug:`.
 """
 import sys, re, traceback, json, os
+import os, wordcount as wc     # option length is measured by one function, in one file
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PILLARS = [m.group(1) for m in re.finditer(r'^\| ([a-z-]+) +\|',
@@ -43,6 +44,13 @@ def coverage_table(text):
     for m in COVERAGE.finditer(text):
         out[m.group(1)] = (int(m.group(2)), int(m.group(3)))     # entries, established
     return out
+
+
+def option_cap(text):
+    # option_words lives in world/index.md so the writer can change it; 18 is the default guidance
+    # states. A hardcoded cap in the tool would make the tunable decorative - the reads_per_turn trap.
+    m = re.search(r'option_words:\s*(\d+)', text)
+    return int(m.group(1)) if m else 18
 
 
 def gap_scale(entries, established):
@@ -223,7 +231,10 @@ def main():
         if is_infra:
             print(f'   turn {i+1}: (turn eaten by the harness - instrument failure, not scored)'); continue
         if w > limit: bad.append(f'words>{limit}'); rc |= 1
-        if any(len(l.split()) > 18 for l in opts): bad.append(f'option {max(len(l.split()) for l in opts)}w>18'); rc |= 2
+        if any(wc.option_words(l) > option_cap(text) for l in opts):
+            bad.append('option %dw > option_words %d'
+                       % (max(wc.option_words(l) for l in opts), option_cap(text)))
+            rc |= 2
         if len(recap) > 6: bad.append('recap>6'); rc |= 2
         # the beat cap is the second half of the word rule: a turn inside words_per_turn can still be
         # one 90-word monologue beat, and that is the shape that stops sounding like conversation

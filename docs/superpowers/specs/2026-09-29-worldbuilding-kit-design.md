@@ -456,3 +456,15 @@ applied at turn one, where the cadence window is empty by construction. Validate
 looks like coverage but is not - every line is `proposed:`, and §4.1 scores that as empty, so the holes
 the interview aims at are intact. The band is also the anti-volume guard: 9 entities is a fail, not a
 bonus.
+
+**R-14 (2026-09-30, gate findings: option breach + I5)** — two changes, one correction. (a)
+`option_words` (default 18) becomes a tunable counted against the option's text; the harness had been
+adding the `- steady —` markup as three words per line, which manufactured every "20-word option"
+finding - measured properly, the worst option in twelve runs is 17. (b) `review` mode is specified where
+it can fire and checked where it can fail: the trigger lives in the per-turn bookkeeping line ("at 3
+sessions since the last `provoked: review`, end the turn with the memo"), the five memo items are each a
+computation in `references/rubric.md`, and a delivered review must log `provoked: review` so the count
+resets. Cost if wrong: a review offered once every three sessions may read as nagging to a writer who
+considers the world reviewed; the reset marker and the threshold are the two knobs, and `review` (asked)
+and `review-owed` (unprompted) are separate scenarios so the nagging case is measurable rather than
+argued.

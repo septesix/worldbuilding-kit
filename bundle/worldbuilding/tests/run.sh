@@ -9,7 +9,7 @@ ln -s "$HOME/.pi/agent/models.json" "$FAKEHOME/.pi/agent/models.json" 2>/dev/nul
 printf '{}' > "$FAKEHOME/.pi/agent/settings.json"
 trap 'rm -rf "$WORK" "$FAKEHOME"' EXIT
 case "$SCEN" in
-  established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup)
+  established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup|review|review-owed)
     cp -R "$HERE/fixtures/established/." "$WORK/" ;;
   continue-empty|new-world) : ;;             # empty project dir (new-world: nothing to read yet)
   home-dir) : ;;                             # non-project dir == the refuse-to-scaffold predicate
@@ -18,7 +18,7 @@ esac
 # only scenarios that started from the fixture have a "present at the start" witness; a run that began
 # in an empty dir would otherwise report every fixture file as deleted
 ORIG=""; case "$SCEN" in
-  established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup)
+  established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup|review|review-owed)
     ORIG="$HERE/fixtures/established" ;;
 esac
 CLEAN=(env -u PI_API_KEY -u PI_SESSION_ID -u PI_SESSION_FILE -u PI_CODING_AGENT -u PI_MODEL -u PI_PROVIDER -u PI_REASONING_LEVEL HOME="$FAKEHOME")
@@ -47,8 +47,12 @@ RPT=$(awk '/reads_per_turn/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/asse
 LIMITS="words_per_turn=${WPT:-?} texture_cadence=${CAD:-?} reads_per_turn=${RPT:-?}"
 LABEL="commit=${COMMIT} guidance=${BHASH} spec_rev=${SPECREV:-R-0} ${LIMITS}"
 { echo "# $SCEN ($VAR) $STAMP"; echo "cwd: $WORK"; echo "label: $LABEL"
-  echo "## prompt"; cat "$HERE/prompts/$SCEN.txt"
-  echo "## transcript"; ( cd "$WORK" && "${CLEAN[@]}" timeout "$RUN_TIMEOUT" pi "${args[@]}" -p "$(cat "$HERE/prompts/$SCEN.txt")" ); RC=$?
+  # review-owed uses the ordinary continue prompt on purpose: nothing asks for a review, so the only
+  # way it appears is the trigger firing - which is the half of I5 that "review" cannot test
+  PROMPT="$HERE/prompts/$SCEN.txt"
+  [ "$SCEN" = review-owed ] && PROMPT="$HERE/prompts/continue-established.txt"
+  echo "## prompt"; cat "$PROMPT"
+  echo "## transcript"; ( cd "$WORK" && "${CLEAN[@]}" timeout "$RUN_TIMEOUT" pi "${args[@]}" -p "$(cat "$PROMPT")" ); RC=$?
   echo "## pi exit status: $RC"
   TL=$(sed -n '/## transcript/,/## files after run/p' "$OUT" | wc -l)
   [ "$RC" = 0 ] || echo "INFRA-FAIL: pi exited nonzero (rc=$RC, timeout ${RUN_TIMEOUT}s)"
@@ -59,6 +63,17 @@ LABEL="commit=${COMMIT} guidance=${BHASH} spec_rev=${SPECREV:-R-0} ${LIMITS}"
   else
     python3 "$HERE/canoncheck.py" --dir "$WORK" --transcript "$OUT"
   fi
+  # I5: the review contract - five memo items if asked, and the trigger if not
+  case "$SCEN" in
+    review|review-owed)
+      python3 "$HERE/reviewcheck.py" --evidence "$OUT" --log "$WORK/world/log.md"
+      RRC=$?
+      [ "$RRC" = 128 ] && echo "INFRA-FAIL: reviewcheck crashed"
+      [ "$RRC" = 4 ] && echo "INFRA-FAIL: reviewcheck had nothing to grade (aborted run or missing log)"
+      [ $((RRC & 7)) != 0 ] && echo "REVIEW-FAIL: rc=$RRC (1 owed-not-delivered, 2 memo incomplete, 3 not logged)"
+      ;;
+  esac
+
   # I4: a `new` run must leave a seeded world, not a chat message describing one
   if [ "$SCEN" = new-world ]; then
     if [ -d "$WORK/world" ]; then

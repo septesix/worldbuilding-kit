@@ -103,6 +103,33 @@ Worked example — `severins-child-place`, named by the writer mid-turn:
 - **Candidates** are existing entities and the nine child generators below - not new inventions on the
   spot, which is how a world acquires a fourteenth bridge.
 
+## Review mode (I5)
+
+**When.** Count the `## <date> (session N)` headers in `log.md` after the last line carrying
+`provoked: review`. If that count is >= 3, a review is owed and you offer it at the end of the turn -
+after the question, never instead of it. `provoked: review` is already one of the eight types, so the
+trigger needs no new state: a session that never writes the machine line will never be asked to review,
+which is R-9's argument repeated.
+
+**The memo** is five items, each a computation over `world/`, printed as five short bullets, chat not
+file. Anything the computation cannot answer is said as unknown, never omitted in silence:
+
+1. **contradictions** - pairs of `established:` lines in different entities that cannot both be true.
+   Cite `entity:line` for both sides, or report "none found, by these two checks".
+2. **orphans** - entity files whose `[[links]]` are one-way, or whose `pillars:` list is empty.
+3. **texture-less pillars** - a pillar with >=1 `established:` line whose entities never tag
+   `daily-life` or `voice-attention`: the world's systems exist and nobody eats.
+4. **unvetted `proposed:`** - `proposed:` lines whose entity still has 0 `established:`, i.e. canon the
+   writer has been quoted at for sessions without confirming.
+5. **treadmill** - over the last 8 machine lines, one provoke type at >= 5. That is the same failure
+   the switch rule catches mid-session; here it is reported as history.
+
+Then one line: what to do about it, as a thread reference, not a task list.
+
+**Log the review you gave.** The memo turn's machine line carries `provoked: review`. Without it the
+count never resets and the next session reviews again - the trigger is arithmetic, so it obeys the
+ledger and nothing else, least of all your memory of having just done this.
+
 ## Seeding a new world (I4)
 
 `SKILL.md` gives the number; the shape is here. After the premise paragraph, before any second
