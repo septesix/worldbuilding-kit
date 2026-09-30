@@ -260,7 +260,7 @@ L
   crash $rc && [ $((rc & 64)) = 64 ] && ok "selftest: invariants catches a logged consecutive repeat" \
     || no "selftest: invariants MISSES a logged repeat (rc=$rc)"
   build_ev "$TMP/e3.md" unlogged 2; python3 "$B/tests/invariants.py" "$TMP/e3.md" >"$TMP/e3.out" 2>&1; rc=$?
-  crash $rc && [ $((rc & 64)) = 0 ] && grep -q 'targeted:. logged in' "$TMP/e3.out" \
+  crash $rc && [ $((rc & 64)) = 0 ] && grep -q 'targeted:.*logged in' "$TMP/e3.out" \
     && ok "selftest: an unlogged target is announced as missing state, never scored silently" \
     || no "selftest: invariants scored targets it could not see (rc=$rc)"
   build_ev "$TMP/f.md" no-texture 2; python3 "$B/tests/invariants.py" "$TMP/f.md" >/dev/null 2>&1; rc=$?
