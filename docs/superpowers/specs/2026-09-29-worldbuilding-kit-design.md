@@ -117,7 +117,7 @@ there is no command surface.
 
 ```yaml
 tunables:
-  words_per_turn: 120      # excluding candidate options
+  words_per_turn: 160      # excluding candidate options — see revision R-2
   texture_cadence: 4       # every Nth turn must be a texture question
   sarcasm: on
   weight_gap: 1.0
@@ -186,7 +186,7 @@ Dry archivist, warmed up. The world is treated as already real and merely under-
 *"Severin has a reason; you simply haven't told anyone yet."* Second person for the writer's
 ideas, third person for the world.
 
-1. ≤120 words per turn (candidate options excluded). Jokes may appear anywhere in the turn,
+1. ≤160 words per turn (candidate options excluded). Jokes may appear anywhere in the turn,
    including inside the question.
 2. Sarcasm is permitted **when warranted**, defined as: it lands on the world's absurdity, an
    internal contradiction, or a thread the world keeps dodging. Never on the writer's idea,
@@ -219,7 +219,7 @@ forces a switch.** `review` reports the distribution.
   log.md                    # append-only session recaps
 ```
 
-- **`index.md`** — frontmatter (`world`, `skill_version`, `sessions`, `last_date`, `tunables`),
+- **`index.md`** — frontmatter (`world`, `sessions`, `last_date`, `tunables`) — see revision R-1, no version field lives here,
   then within the first 60 lines: pillar table (counts + thin/thick), entity registry (slug ·
   kind · pillars · status · hooks, one line each), texture digest, top-5 hottest threads. Never
   authoritative over entity bodies; rebuilt from them if missing or stale.
@@ -299,3 +299,183 @@ content packs · prose generation · multi-writer sync or hosting · any app, se
 | `bundle/worldbuilding/assets/*-template.md` | index / entity / threads |
 | `bundle/worldbuilding/tests/` | 3 scenarios + scorecard |
 | world data | created at runtime in `<project_root>/world/`, never in this repo |
+
+## Revisions
+
+**R-1 (2026-09-30, gate finding I-follow-up)** — Dropped `skill_version` from `world/index.md`. The
+kit's upgrade offer compares an installed version against the bundle's; with the marker in `world/`
+the comparison read a file the worldbuilding skill rewrites during ordinary work, and a control run
+was observed setting it to `0.1.0` unprompted. `metadata.version` in each `SKILL.md` is now the only
+version source, in a file the skill never writes. Cost of being wrong: a stale `world/` copy could
+mask an available upgrade, or a completed session could announce one.
+
+**R-2 (2026-09-30, operator decision on gate finding I1/F3)** — `words_per_turn` default raised
+120 → 160. Rationale: measured resume turns land at 152 with the skill installed; 120 was a number I
+chose during brainstorming by feel and it produces a budget the target behavior violates by ~25%
+under ordinary conditions. 160 keeps the cap a real constraint (control turns ran 178–500) while
+being a limit the intended output actually fits. Cost if wrong: the cap stops biting on the runs it
+was meant to prevent — verbosity drifts upward to fill whatever number is written, so the honest
+test is whether skill turns stay under it over time, not whether they do today. An operator editing
+this in `world/index.md` overrides per world, which is the mechanism this number was always meant to
+be routed through.
+
+**R-3 (2026-09-30, found while measuring R-2)** — `words_per_turn` caps **turn words only**: prose the
+writer reads as conversation. The candidate options and the session-close recap are exempt because
+they carry their own limits (≤18 words each; ≤6 bullets) and §3.1 *mandates* the recap, so counting
+it against the conversational budget makes the cap unsatisfiable on exactly the wrap-up turns §3.1
+requires — the same self-contradiction as finding I6. Cost if wrong: a close turn gets 160 words of
+cap plus an unbounded appendix; the appendix bounds are the control there, not the cap.
+
+**R-4 (2026-09-30, gate finding F7)** — Each turn logs `targeted: <pillar>` alongside `provoked:
+<type>`, in chat and `log.md`. §4's constraint "never the same pillar in consecutive turns when
+another candidate reaches `lopsidedness_floor`" was **unobeyable as written**: nothing on disk records
+what the previous turn targeted, and past the first couple of turns the transcript is no longer in
+context to be re-read. Two runs hammered `faith-myth` for four consecutive turns, which is not
+disobedience so much as an arithmetic the skill cannot perform without state.
+Cost if wrong: one more field on every log line, and a writer reading `log.md` sees bookkeeping that
+is not prose. Accepted: the alternative is a rule that reads as guidance and functions as decoration.
+Related correction: F7 was first reported to the operator as a *conflict* between the lopsidedness
+floor and the switch rule. It is not a conflict. The floor sets priority by gap size; §4 already
+forbids consecutiveness; the missing piece was the record. What the spec never supported is the
+"never 3 turns running" test the harness was asserting - that rule is my invention, now corrected to
+consecutive turns (spec §4), with the ≥ `lopsidedness_floor` condition reported as ADVISORY because
+candidate scores are not recorded either.
+
+**R-5 (2026-09-30, gate finding F9)** — Pillar and entity counts are read from `world/index.md`'s two
+tables, not from entity bodies; at most **one** body is read per turn, the targeted one, to quote it.
+§4's scoring was reachable two ways and the rubric described the expensive one: "count canon lines in
+the entity files", which needs N reads, against §3's "≤3 entity bodies per turn". Runs breached the
+read cap in 2 of 5 turns (6 bodies) while obeying the word and question rules. The tables exist so the
+arithmetic needs no file opening; R-4's rotation fix made it worse before this one, because scanning
+more pillars meant counting more bodies. Cost if wrong: the tables can be stale and the skill then
+scores from a fiction - which is why §3's stale-index rebuild is a precondition, and why `check.sh
+fixture` derives those same tables mechanically.
+
+**R-6 (2026-09-30, operator question about F9)** — `≤3 entity bodies per turn` becomes
+`≤ reads_per_turn` (default 3), stated as a **scale tripwire, not a ration**. Its whole purpose, per
+§7's failure-mode table, is that a 300-entity world must not score itself by opening every entity.
+Crossing it is therefore evidence the structural rule (R-5: count from `index.md`) broke - the response
+is to rebuild the index, not to apologise for reading. The fixture's nine bridges are 7 entities and
+4.4 KB, where the cap protects nothing measurable, so breach counts at fixture scale were being read as
+quality defects when they were artefacts of test size; `invariants.py` now measures against the
+tunable so a small world cannot generate false alarms and a large one cannot generate silence.
+Cost if wrong: a writer who reads `reads_per_turn` as a licence to open 3 files every turn. The
+tripwire wording in `SKILL.md` exists to keep it legible as a diagnostic.
+
+
+**Correction to R-5 / R-6 (2026-09-30, found after both were merged)** — F9 did not exist. The
+"reads per turn" figure in `invariants.py` counted every tool call touching `world/encyclopedia/`,
+including the 2-3 `edit` calls bookkeeping requires, plus `write` and `bash`. Recomputed against tool
+name `read` only, the four multi-turn runs on record read **0-2 entity bodies per turn**, always inside
+the cap - including the runs that motivated R-5 ("6 bodies") and R-6 ("5,4,4,2,4"). Both revisions were
+authored to fix a bug in the measuring instrument.
+
+Kept anyway, on their own merits and labelled as such: R-5 (count from `index.md`, read one body to
+quote) is what the runs were already doing, and is the only formulation that scales to the 300-entity
+case; R-6 (`reads_per_turn` as a named tunable) is the right shape for a scale guard. Neither is now
+supported by evidence of a breach, and neither may be cited as a fix for one. What the corrected
+instrument does still show at depth: `words_per_turn` breached by turns 1 and 4 of the last run
+(164, 169 against 160), and two candidate options over 18 words.
+
+
+**R-7 (2026-09-30, operator decision)** — `words_per_turn` default 160 → 170, on three 5-turn runs
+whose deepest turns measured 164 and 169. Stated plainly because the pattern is the one criticised in
+R-2: this is a budget set just above the observed maximum, so it will stop biting on exactly the turns
+that motivated it unless the 12-turn run shows the ceiling is elsewhere. The test that settles it is
+turn-level distribution at depth, not another single-turn sample.
+
+**R-8 (2026-09-30, gate finding at 12 turns)** — Texture cadence is computed from the `targeted:`
+values of the last `texture_cadence` entries in `log.md`; if none names `daily-life` or
+`voice-attention`, that turn belongs to texture and outranks any gap or hook score. No new state is
+introduced - R-4 already records the target, so this rule is derivable and was only unkept because
+nothing told the skill to look. Root cause is the same as R-4's in a different dress: **a rule the skill
+cannot count is a rule it cannot keep.** Observed failure at 12 turns: rotation working perfectly (no
+pillar twice running) while texture was asked once, at turn 1, missing 7 of 8 windows - rotation is
+precisely what starves cadence, because every turn picks a different non-texture pillar.
+Cost if wrong: texture turns arrive by arithmetic rather than tact, so a session in a grim stretch gets
+a food question because a counter said so. Accepted - the alternative is worlds with nine bridges and
+nothing to eat, which is the failure this whole design exists to prevent.
+
+**R-9 (2026-09-30, gate finding at 12 turns)** — `log.md` carries exactly **one machine line per
+turn**: `- turn: <n> · provoked: <type> · targeted: <pillar>`, written before the prose `decided:`
+lines and before any close recap. Prose is for the writer; the machine line is for the next turn, which
+cannot remember otherwise. Motivated by the gap R-4 left: across three 12-turn runs the field appeared
+in 1 of 14 prose lines, then 5 of 12 turns, then - once required as its own line - 11 of 12. Cadence
+failures fell from 6 unmet windows to 1 for the same reason: the rule became readable, not because the
+skill's taste changed. §4's cadence and consecutive-pillar constraints are only evaluable against this
+line; where it is missing, they are reported as unscored rather than satisfied.
+Cost if wrong: one more mechanical line per turn in a file the writer may read as bookkeeping noise.
+Mitigated by shape: the line is short, fixed-form, and the prose that humans actually read stays where
+it was.
+
+**R-10 (2026-09-30, gate finding at 12 turns)** — `beat_budget` (default **45 words per labelled
+beat**) joins the tunables. `words_per_turn` measures the turn and not the shape of the turn: a beat can
+run 52 words inside a 155-word turn and the cap calls that compliant, which is how "light, witty,
+conversational" decays into a lecture that passes every test. Measured against beats, the fat on this
+project's own evidence sits in `target` (why this hole) and `write back` (what was filed) - the two
+beats the writer waits through without answering anything. Cost if wrong: a beat cap tight enough to
+slice a genuine digest in half; mitigated because the number is a tunable in `world/index.md` and the
+writer owns it, and the instrument names which beat broke rather than reporting a turn total.
+
+Related corrections found while implementing it: the close trigger (`turns_per_session`, default 12)
+existed in a single SKILL.md sentence and is now stated in `references/rubric.md` and carried as a
+tunable; and a self-test that mutated `references/voice.md` without backing it up left test markers in
+shipped guidance across four runs while reporting a green round-trip - now guarded by a debris check
+and a documented-default-equals-real-default check.
+
+**R-11 (2026-09-30, gate finding F6)** — append-only applies to **files**, not only to lines. The
+encyclopedia may gain files and never lose one: a retired entity is superseded in place and shows up
+as an orphan in `review`. §2's promise was always that canon is history, but every check measured
+*lines* inside files, and two of the ten recorded sessions had already deleted an entity file
+(`rm encyclopedia/lighthouse-place.md`) without a single CANON-LOSS marker appearing. `tests/canoncheck.py`
+now witnesses three ways - the start state, every path seen during the run, and the session's own tool
+calls - and is wired into both harnesses. Cost if wrong: `world/encyclopedia/` accumulates files for
+entities the writer abandoned; mitigated because orphans were already a concept in `review`, and the
+alternative - silent disappearance of a named thing the writer once explained - is the one loss the
+encyclopedia cannot recover from.
+
+**R-12 (2026-09-30, gate finding I7)** — scoring is disclosed and arithmetically checkable. Two
+symptoms, one root: `gap_weight` was an impression rather than a lookup (a thin pillar was awarded 3,
+which the scale reserves for *nothing there*), and scores appeared as bare numbers ("scores highest"),
+which cannot be audited by the writer or the harness. `gap_weight` is now defined against the
+`Pillar coverage` table - `established == 0` → 3 · `1–2` → 2 · `≥3` across `≥2` entities → 1 · else 0 -
+and the guidance requires all three terms wherever a score is shown. `invariants.py` verifies a
+disclosed score's gap term against the dumped table and flags a score with no terms, so §4.1's
+arithmetic is now part of the gate instead of part of the argument. Cost if wrong: the audit is only as
+good as the index table it reads; a stale table produces a false contradiction, which the index rebuild
+rule already treats as a first-class failure to announce rather than silently score against.
+
+**R-13 (2026-09-30, gate finding I4)** — `new` mode's seed is specified and checked. §2 said "seed
+5–8 entities"; the guidance said "one file per entity" with no count, and the harness had no `new`-mode
+scenario, so the whole mode was untested. The band is now in SKILL.md (499 words) with its shape in
+`references/rubric.md`: 5–8 entity files, all canon lines `proposed:`, spread over ≥3 pillars including
+≥1 texture pillar, ≥3 threads per entity. The texture requirement is not a new preference - it is R-8
+applied at turn one, where the cadence window is empty by construction. Validated by `tests/seedcheck.py`
+(count / spread+texture / premature canon / thread floor) and graded by `check.sh behavior` with
+"untested" named separately from "passed". Cost if wrong: a seeded world touches all 18 pillars, which
+looks like coverage but is not - every line is `proposed:`, and §4.1 scores that as empty, so the holes
+the interview aims at are intact. The band is also the anti-volume guard: 9 entities is a fail, not a
+bonus.
+
+**R-14 (2026-09-30, gate findings: option breach + I5)** — two changes, one correction. (a)
+`option_words` (default 18) becomes a tunable counted against the option's text; the harness had been
+adding the `- steady —` markup as three words per line, which manufactured every "20-word option"
+finding - measured properly, the worst option in twelve runs is 17. (b) `review` mode is specified where
+it can fire and checked where it can fail: the trigger lives in the per-turn bookkeeping line ("at 3
+sessions since the last `provoked: review`, end the turn with the memo"), the five memo items are each a
+computation in `references/rubric.md`, and a delivered review must log `provoked: review` so the count
+resets. Cost if wrong: a review offered once every three sessions may read as nagging to a writer who
+considers the world reviewed; the reset marker and the threshold are the two knobs, and `review` (asked)
+and `review-owed` (unprompted) are separate scenarios so the nagging case is measurable rather than
+argued.
+
+**R-15 (2026-09-30, operator decision)** — the review memo is an **appendix artifact** with its own
+limit: `memo_words` (default **120**, total across the five items), excluded from `words_per_turn` the
+same way candidate options (`option_words`, 18) and the close recap (≤6 bullets) already were. §3.1
+established the principle and this is its fourth instance: an artifact the contract *mandates* cannot
+also be charged against the budget for *conversation*, or the two limits mean nothing - the writer ends
+up told to be brief in a turn that is required to be long. Exemption without a ceiling is only a hiding
+place, so the memo is measured rather than forgiven: the longest on file was 203 words, which is a page,
+not a glance, and now fails. Cost if wrong: 120 words may cut a memo that legitimately needs to cite
+five contradictions; the knob is a tunable, and the item list is capped at five, so pressure resolves
+into "cite less, name the thread", not into a longer exemption.
