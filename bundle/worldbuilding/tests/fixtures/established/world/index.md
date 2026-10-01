@@ -8,7 +8,7 @@ tunables:
   reads_per_turn: 3
   beat_budget: 45
   option_words: 18
-  memo_words: 150
+  memo_item_words: 45
   turns_per_session: 12
   sarcasm: on
   weight_gap: 1.0

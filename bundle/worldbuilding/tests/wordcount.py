@@ -32,7 +32,7 @@ MEMO_ITEM = re.compile(r'^\s*(?:[-*]|\d\.)\s+')
 
 def memo_split(lines):
     """(memo_lines, other_lines). The review memo is a mandated appendix, so it is measured against
-    memo_words and never against the turn budget - and it is still measured, because an exempt artifact
+    memo_item_words and never against the turn budget - and it is still measured, because an exempt artifact
     without a ceiling is just a place to hide length."""
     memo, other, i = [], [], 0
     while i < len(lines):
@@ -52,8 +52,10 @@ def memo_split(lines):
 
 
 def memo_cap(text):
-    m = re.search(r'memo_words:\s*(\d+)', text)
-    return int(m.group(1)) if m else 150
+    """Per-item ceiling. The total is deliberately not the measured thing: totals across the archive run
+    55-182 and hide a 60-word bullet inside a 147-word memo."""
+    m = re.search(r'memo_item_words:\s*(\d+)', text)
+    return int(m.group(1)) if m else 45
 
 
 def wc_words(line):
@@ -73,8 +75,9 @@ def measure(path):
     w = len(' '.join(turn).split())
     if w <= 10 and not opts and not recap and not memo:
         return None                                  # empty/aborted transcript: no verdict
-    return (w, [option_words(l) for l in opts], len(recap),
-            sum(wc_words(l) for l in memo), memo_cap(t))
+    items = [wc_words(l) for l in memo if MEMO_ITEM.match(l)]
+    return (w, [option_words(l) for l in opts], len(recap), items or [sum(wc_words(l) for l in memo)],
+            memo_cap(t))
 
 if __name__ == '__main__':
     files = [a for a in sys.argv[1:] if not a.isdigit()]
@@ -87,13 +90,13 @@ if __name__ == '__main__':
             print(f'  skip  {f} (no transcript, or an aborted run - not counted as a pass)'); continue
         w, opts, recap, memo_w, memo_lim = m
         over_opt = [o for o in opts if o > 18]
-        over_memo = memo_w > memo_lim
+        over_memo = max(memo_w) > memo_lim
         flag = 'ok  ' if w <= limit and not over_opt and recap <= 6 and not over_memo else 'OVER'
         bad_turn += w > limit
         bad_aux += bool(over_opt) or recap > 6 or over_memo
         print(f'  {flag}  {w:4d} turn words (limit {limit}) | {len(opts)} options'
               f'{", longest " + str(max(opts)) if opts else ""} | {recap} recap bullets'
-              f'{" | memo " + str(memo_w) + "w (limit " + str(memo_lim) + ")" if memo_w else ""}'
+              f'{" | memo max item " + str(max(memo_w)) + "w (limit " + str(memo_lim) + ")" if memo_w else ""}'
               f'{"  <-- " + ",".join(str(o) for o in over_opt) + "-word options" if over_opt else ""}'
               f'{"  <-- recap > 6" if recap > 6 else ""}'
               f'{"  <-- memo over " + str(memo_lim) + "w" if over_memo else ""}  <- {f.split("/")[-1]}')

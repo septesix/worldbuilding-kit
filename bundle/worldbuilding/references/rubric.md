@@ -126,11 +126,13 @@ file. Anything the computation cannot answer is said as unknown, never omitted i
 
 Then one line: what to do about it, as a thread reference, not a task list.
 
-The memo totals ≤ `memo_words` (150) and never counts against `words_per_turn`: it is an appendix, and
-six complete memos on file run 61-130 words while a seventh ran 203, so the ceiling sits above the
-first band and below the second - and
-an exempt artifact still needs a ceiling - the longest memo in the archive ran 180 words, which is a
-page, not a glance. Five items, one line each, citations over prose.
+The memo never counts against `words_per_turn`: it is an appendix. It is still capped, and per item -
+**each of the five bullets ≤ `memo_item_words` (45)**. The failure is never "the memo is long", it is
+"one item became a paragraph", and a total cannot see it: memo totals on file run 55-182, and the worst
+bullet in them runs 60 words inside a 147-word memo that looks shorter than a clean 182-word one. An
+exempt artifact with no ceiling of its own is only a hiding place. Five items, one line each, citations
+over prose.
+
 **Log the review you gave.** The memo turn's machine line carries `provoked: review`. Without it the
 count never resets and the next session reviews again - the trigger is arithmetic, so it obeys the
 ledger and nothing else, least of all your memory of having just done this.

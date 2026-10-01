@@ -199,7 +199,8 @@ def main():
         recap = [l for l in body if BULLET.match(l) and (RECAP.match(l) or closing)]
         memo_l, body_rest = wc.memo_split(body)          # the memo is an appendix, not a monologue
         opts = [l for l in body_rest if OPT.match(l)]
-        memo_w = sum(wc.wc_words(l) for l in memo_l)
+        memo_w = [wc.wc_words(l) for l in memo_l if wc.MEMO_ITEM.match(l)]
+        memo_w = memo_w or [sum(wc.wc_words(l) for l in memo_l)]
         prose = [l for l in body_rest if l not in opts and l not in recap]
         # matched line by line: joining the beats into one string would break the ^ anchor and read
         # the whole turn as one beat
@@ -237,7 +238,8 @@ def main():
         if w > limit: bad.append(f'words>{limit}'); rc |= 1
         # the memo is excluded above, so it is checked here against its own ceiling - an exempt
         # artifact with no limit of its own is only a hiding place for length
-        if memo_w > MEMO_CAP: bad.append(f'memo {memo_w}w > memo_words {MEMO_CAP}'); rc |= 2
+        if max(memo_w) > MEMO_CAP:
+            bad.append(f'memo item {max(memo_w)}w > memo_item_words {MEMO_CAP}'); rc |= 2
         if any(wc.option_words(l) > option_cap(text) for l in opts):
             bad.append('option %dw > option_words %d'
                        % (max(wc.option_words(l) for l in opts), option_cap(text)))

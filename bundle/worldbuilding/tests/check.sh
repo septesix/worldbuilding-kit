@@ -77,7 +77,7 @@ templates(){
     [ "$homes" -ge 1 ] && ok "rule survives somewhere: $q" || no "rule deleted from every file: $q"
   done
   local t missing=0
-  for t in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session memo_words option_words; do
+  for t in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session memo_item_words option_words; do
     n=$(grep -rl "$t" "$B/SKILL.md" "$B/references" "$B/assets" "$B/tests/fixtures/established/world/index.md" 2>/dev/null | wc -l)
     [ "$n" -ge 3 ] || { missing=1; no "tunable $t appears in only $n places - a rule with no home"; }
   done
@@ -609,24 +609,35 @@ out = ['# x (skill) MULTI',
        '**Memo** (review owed):', bullets,
        '**Question.** Which crossing is oldest?', '**Stop.** `provoked: review \u00b7 targeted: daily-life`',
        '- steady \u2014 one two three', '',
-       '## world/ contents', '--- ./world/index.md', 'tunables:', '  memo_words: %s' % cap, '',
+       '## world/ contents', '--- ./world/index.md', 'tunables:', '  memo_item_words: %s' % cap, '',
        '--- ./world/log.md', '## 2026-09-01 (session 1)', '- turn: 1 \u00b7 provoked: review \u00b7 targeted: daily-life']
 open(path, 'w').write('\n'.join(out))
 L
 }
-  memo_ev "$TMP/mm1.md" 12 120; python3 "$B/tests/invariants.py" "$TMP/mm1.md" >"$TMP/mm1.out" 2>&1; rc=$?
+  memo_ev "$TMP/mm1.md" 12 45; python3 "$B/tests/invariants.py" "$TMP/mm1.md" >"$TMP/mm1.out" 2>&1; rc=$?
   crash $rc && [ $((rc & 2)) = 0 ] \
-    && ok "selftest: a 5-bullet memo inside memo_words passes with its turn counted clean" \
+    && ok "selftest: five short memo bullets pass, and the turn is counted clean around them" \
     || no "selftest: a compliant memo fails (rc=$rc) - the exemption is not wired"
-  memo_ev "$TMP/mm2.md" 30 120; python3 "$B/tests/invariants.py" "$TMP/mm2.md" >"$TMP/mm2.out" 2>&1; rc=$?
-  { crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'memo 15' "$TMP/mm2.out"; } \
-    && ok "selftest: a 150-word memo fails on its own ceiling, not the turn cap" \
-    || no "selftest: an over-long memo hid inside the exemption (rc=$rc)"
-  memo_ev "$TMP/mm3.md" 30 200; python3 "$B/tests/invariants.py" "$TMP/mm3.md" >/dev/null 2>&1; rc=$?
+  memo_ev "$TMP/mm2.md" 56 45; python3 "$B/tests/invariants.py" "$TMP/mm2.md" >"$TMP/mm2.out" 2>&1; rc=$?
+  { crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'memo item 5' "$TMP/mm2.out"; } \
+    && ok "selftest: a 56-word memo bullet fails its own ceiling, not the turn cap" \
+    || no "selftest: an over-long memo item hid inside the exemption (rc=$rc)"
+  # the case a total can never see: a short memo with one paragraph buried in it
+  memo_ev "$TMP/mm5.md" 12 45
+  python3 - "$TMP/mm5.md" <<'L'
+import sys, re
+pth = sys.argv[1]; t = open(pth).read()
+open(pth, 'w').write(re.sub(r'- item 0: [^\n]*', '- item 0: ' + 'word ' * 61, t, count=1))
+L
+  python3 "$B/tests/invariants.py" "$TMP/mm5.md" >"$TMP/mm5.out" 2>&1; rc=$?
+  { crash $rc && [ $((rc & 2)) = 2 ] && grep -q 'memo item 6' "$TMP/mm5.out"; } \
+    && ok "selftest: one 61-word bullet fails inside a short memo (a total would pass it)" \
+    || no "selftest: the paragraph-in-a-bullet case passed (rc=$rc) - the per-item cap is decorative"
+  memo_ev "$TMP/mm3.md" 56 60; python3 "$B/tests/invariants.py" "$TMP/mm3.md" >/dev/null 2>&1; rc=$?
   crash $rc && [ $((rc & 2)) = 0 ] \
-    && ok "selftest: memo_words is read from the world index, not hardcoded" \
-    || no "selftest: memo_words in the index is decorative (rc=$rc)"
-  memo_ev "$TMP/mm4.md" 30 120; python3 "$B/tests/wordcount.py" "$TMP/mm4.md" 170 >"$TMP/mm4.out" 2>&1
+    && ok "selftest: memo_item_words is read from the world index, not hardcoded" \
+    || no "selftest: memo_item_words in the index is decorative (rc=$rc)"
+  memo_ev "$TMP/mm4.md" 12 45; python3 "$B/tests/wordcount.py" "$TMP/mm4.md" 170 >"$TMP/mm4.out" 2>&1
   grep -qE 'turn words \(limit 170\)' "$TMP/mm4.out" && ! grep -qE 'OVER +[2-9][0-9][0-9] turn' "$TMP/mm4.out" \
     && ok "selftest: the memo is not counted as turn prose by wordcount either" \
     || no "selftest: wordcount still folds the memo into turn words (single-turn runs misreport)"
@@ -637,12 +648,12 @@ L
 import sys
 pth = sys.argv[1]
 t = open(pth).read()
-open(pth, 'w').write('\n'.join(l for l in t.split('\n') if not l.strip().startswith('memo_words:')))
+open(pth, 'w').write('\n'.join(l for l in t.split('\n') if not l.strip().startswith('memo_item_words:')))
 L
   python3 "$B/tests/wordcount.py" "$TMP/mm0.md" 170 >"$TMP/mm0.out" 2>&1; rc=$?
-  crash $rc && [ $((rc & 2)) = 0 ] && grep -q 'memo 13' "$TMP/mm0.out" \
-    && ok "selftest: with no memo_words in the world, the documented default (150) applies" \
-    || no "selftest: the memo default is not 150 (rc=$rc: $(grep -o 'memo [0-9]*w (limit [0-9]*)' "$TMP/mm0.out"))"
+  crash $rc && [ $((rc & 2)) = 0 ] && grep -q 'memo max item 2' "$TMP/mm0.out" \
+    && ok "selftest: with no memo_item_words in the world, the documented default (45) applies" \
+    || no "selftest: the memo item default is not 45 (rc=$rc: $(grep -o 'memo max item [0-9]*w (limit [0-9]*)' "$TMP/mm0.out"))"
 
 
   # I5: the review contract, both halves. One probe per failure mode, plus the reset that proves the

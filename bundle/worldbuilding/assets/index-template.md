@@ -8,7 +8,7 @@ tunables:
   reads_per_turn: 3   # a tripwire, not a ration: needing more means you are scoring from files
   beat_budget: 45     # words per labelled beat, so one bloated beat cannot eat the whole turn
   option_words: 18    # per candidate option, counting the option, not the '- steady -' markup
-  memo_words: 150     # the whole five-item memo: 6 complete ones measured 61-130, a seventh ran 203
+  memo_item_words: 45 # per memo bullet, not the memo's total: one item turning into a paragraph is the
   turns_per_session: 12   # the close trigger; counted from the machine lines in log.md
   sarcasm: on
   weight_gap: 1.0
