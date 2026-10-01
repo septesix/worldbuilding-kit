@@ -25,10 +25,23 @@ Then start pi in a writing project and ask it to build a world. It installs the 
 
 ## Development
 
-    bash bundle/worldbuilding/tests/check.sh all        # static gates (self-tests the comparator)
+    bash bundle/worldbuilding/tests/check.sh all        # 168 static assertions, incl. self-tests of the gates
+    bash bundle/worldbuilding/tests/check.sh behavior   # grade recorded runs at THIS guidance hash only
+    bash bundle/worldbuilding/tests/multi               # 12-turn runs against one persistent world
+
     bash bundle/worldbuilding/tests/run.sh <scenario> <control|skill>   # one headless run, ~3 min
     cat evidence/BASELINE.md                            # what the model does with no skill
 
 Scenarios: `continue-established`, `continue-empty`, `stale-index`, `reaction-mode`, `tone-sarcasm`,
-`pressure-wrapup`, `home-dir`. Runs are sequential by design — concurrent headless runs on this box
-return empty transcripts.
+`pressure-wrapup`, `home-dir`, `new-world`, `review`, `review-owed`, and the multi-turn `retcon`,
+`close`, `cadence` scripts. Runs are sequential by design — concurrent headless runs on this box return
+empty transcripts.
+
+Behavioural evidence is keyed to a hash of the guidance files, not the commit: `check.sh behavior`
+reports how many transcripts still apply to the build being graded and refuses to count the rest as
+passing. A green static suite therefore never implies "tested recently" — read both lines.
+
+## Version
+
+`v0.1.0` — every mode in the spec has a scenario that reaches it; the two that didn't (`new`, `review`)
+were found by looking for the test rather than by looking for the behaviour.
