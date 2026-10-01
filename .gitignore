@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+
+# scratch audits from harness work; evidence/ is the durable record
+tools-audit.py

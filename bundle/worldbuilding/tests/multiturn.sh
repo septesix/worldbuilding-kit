@@ -7,6 +7,7 @@
 #   bash tests/multiturn.sh <scenario> <skill|control> [turns]
 #   TURN_TIMEOUT=600 bash tests/multiturn.sh cadence skill 5
 set -uo pipefail
+export PYTHONDONTWRITEBYTECODE=1  # the suite imports these modules; a .pyc under bundle/ is shipped debris
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../../.." && pwd)"; BUNDLE="$HERE/.."
 SCEN="${1:?scenario}"; VAR="${2:-skill}"; N="${3:-4}"
 TURN_TIMEOUT="${TURN_TIMEOUT:-600}"

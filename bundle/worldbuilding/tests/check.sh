@@ -2,6 +2,7 @@
 # Mechanically checkable assertions for the worldbuilding skill. Dev fixture only.
 # usage: bash tests/check.sh <harness|templates|rubric|voice|method|kit|selftest|all>
 set -uo pipefail
+export PYTHONDONTWRITEBYTECODE=1  # the suite imports these modules; a .pyc under bundle/ is shipped debris
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../../.." && pwd)"
 B="$REPO/bundle/worldbuilding"; PASS=0; FAIL=0
 ok(){ printf '  ok   %s\n' "$1"; PASS=$((PASS+1)); }
@@ -140,6 +141,16 @@ method(){
     grep -qE 'probe -->|SELFTEST|<!-- (mutation|probe)' "$g" && { debris=1; no "guidance carries test debris: ${g#"$REPO"/}"; }
   done
   [ $debris = 0 ] && ok "no test debris in shipped guidance (SKILL, references, assets)"
+  # compiled debris is the same mistake with worse consequences: a tracked .pyc under bundle/ ships to
+  # the writer AND rewrites itself on every test run, so "is the tree dirty?" stops being a signal
+  junk=$(find "$B" \( -name '__pycache__' -o -name '*.pyc' -o -name '*.orig' -o -name '*.rej' \) -print | head -3)
+  [ -z "$junk" ] \
+    && ok "the shipped bundle carries no compiled debris" \
+    || no "shipped bundle carries debris: $(echo $junk | tr '\n' ' ') - delete it and ignore it"
+  tj=$(git -C "$REPO" ls-files "$B" 2>/dev/null | grep -E '__pycache__|\.pyc$' | head -3)
+  [ -z "${tj:-}" ] \
+    && ok "no compiled debris is tracked in git" \
+    || no "git still tracks compiled debris: $(echo ${tj:-} | tr '\n' ' ')"
   grep -qi 'empty' "$S" && grep -qi 'gap_weight' "$S" && ok "gap_weight polarity documented" || no "gap_weight polarity missing"
   has "write boundary names world/" "$S" 'world/'
   # R-4: the consecutive-pillar rule is only obeyable if the target is recorded

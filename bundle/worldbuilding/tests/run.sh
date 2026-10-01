@@ -2,6 +2,7 @@
 # Headless skill-run harness.  Dev fixture: never copied into a writer's project.
 # usage: bash tests/run.sh <scenario-id> <control|skill>
 set -uo pipefail
+export PYTHONDONTWRITEBYTECODE=1  # the suite imports these modules; a .pyc under bundle/ is shipped debris
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../../.." && pwd)"; BUNDLE="$HERE/.."
 SCEN="$1"; VAR="${2:-control}"; WORK="$(mktemp -d)"; FAKEHOME="$(mktemp -d)"
 mkdir -p "$FAKEHOME/.pi/agent"
