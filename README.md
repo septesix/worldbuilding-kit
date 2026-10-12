@@ -11,8 +11,18 @@ demand so unrelated projects never load it.
 
 Your world's data is never in this repo. It lives at `<project_root>/world/`.
 
-## Install (once, per machine)
+## Install
 
+Either way, only the small installer trigger (`kit/`, ~130 words of description) loads into every
+session. The real skill is copied into the project that asks for a world, and nowhere else.
+
+**As a pi package:**
+
+    pi install git:github.com/septesix/worldbuilding-kit
+
+**From a clone:**
+
+    git clone https://github.com/septesix/worldbuilding-kit
     ln -s ~/worldbuilding-kit/kit ~/.pi/agent/skills/worldbuilding-kit
 
 Then start pi in a writing project and ask it to build a world. It installs the project copy itself.
@@ -20,7 +30,8 @@ Then start pi in a writing project and ask it to build a world. It installs the 
 
 ## Uninstall
 
-    rm ~/.pi/agent/skills/worldbuilding-kit        # stop new installs
+    pi remove git:github.com/septesix/worldbuilding-kit   # if installed as a package
+    rm ~/.pi/agent/skills/worldbuilding-kit        # if installed by symlink; both stop NEW installs
     rm -rf <project>/.pi/skills/worldbuilding      # per project; leaves <project>/world/ alone
 
 ## Development
@@ -40,6 +51,20 @@ empty transcripts.
 Behavioural evidence is keyed to a hash of the guidance files, not the commit: `check.sh behavior`
 reports how many transcripts still apply to the build being graded and refuses to count the rest as
 passing. A green static suite therefore never implies "tested recently" — read both lines.
+
+## Licence and ownership of your writing
+
+MIT — see [LICENSE](LICENSE). Free to use, copy, modify, redistribute, commercially or not.
+
+**Nothing you write with this is encumbered.** The licence covers the kit: the skill text, the
+templates, the scripts. Your `world/` directory — entities, threads, the ledger, everything the
+interview produces — is yours, in a project folder this repo never touches.
+
+Two kinds of content in `evidence/` and `bundle/.../fixtures/` are worth naming, since publishing them
+is a choice rather than an oversight: the fixture world (*nine bridges*) is fictional test material, and
+the transcripts are real recorded runs of a language model building and repairing that world, kept
+because a claim of "tested" is worth little without the artifacts behind it. Both are MIT-licensed like
+everything else.
 
 ## Version
 

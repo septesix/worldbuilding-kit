@@ -1,0 +1,24 @@
+{
+  "name": "worldbuilding-kit",
+  "version": "0.1.0",
+  "description": "A worldbuilding interview for pi that builds and maintains an on-disk encyclopedia (world/) beside your manuscript, installing itself into a writing project only when a world is asked for.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/septesix/worldbuilding-kit.git"
+  },
+  "keywords": [
+    "pi",
+    "pi-skill",
+    "worldbuilding",
+    "creative-writing",
+    "fiction",
+    "lore",
+    "screenwriting"
+  ],
+  "pi": {
+    "skills": [
+      "./kit"
+    ]
+  }
+}
