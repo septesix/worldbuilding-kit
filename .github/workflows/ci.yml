@@ -1,0 +1,58 @@
+name: checks
+
+# Static suite only, deliberately.
+#
+# The behavioural suite (check.sh behavior, tests/run.sh, tests/multi) grades recorded transcripts and
+# drives a live model, so it needs the evidence corpus plus a model that does not exist on a runner, and
+# it cannot be made deterministic. A CI job that reports "no transcripts matched this guidance hash" as
+# a green build would be worse than no job: it would manufacture the exact false pass the suite exists to
+# prevent. If you want behaviour in CI, that is a different project - a pinned model with an API key and
+# a budget - and the honest result would still need `N graded of M` printed, not just a tick.
+#
+# What does run here is the part CI is good at: 168 assertions about the guidance files, the templates,
+# the fixtures, and whether the gates themselves can still fail.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: static suite (168 assertions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          python3 --version
+          bash --version | head -1
+          git --version
+
+      # selftest + meta run first inside `all`: if the assertion helper is broken, the helper reports it
+      # rather than the suite going vacuously green.
+      - name: Run static suite
+        run: bash bundle/worldbuilding/tests/check.sh all
+
+      # A suite that rewrites the checkout destroys the only signal a later step has. The runner sets
+      # PYTHONDONTWRITEBYTECODE, so this is a real check and not a formality: tracked or generated
+      # debris here fails the build.
+      - name: Assert the suite left the tree clean
+        run: |
+          set -euo pipefail
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+          ! git ls-files | grep -E '(__pycache__|\.pyc$)' >/dev/null
