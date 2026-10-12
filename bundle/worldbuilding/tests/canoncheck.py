@@ -17,7 +17,15 @@ Three independent witnesses, because each one alone has a blind spot:
 Exit: 0 clean | 1 canon lost or attempted. Lines start with CANON-LOSS so `grep -q '^CANON-LOSS'` in
 run.sh / multiturn.sh / check.sh keeps working unchanged.
 """
-import sys, os, re, argparse
+import sys, os, re, argparse, gzip
+
+
+def _read(f):
+    # Evidence logs are stored gzipped. Both forms read identically, so compressing an
+    # artifact can never turn a detector blind by changing its name - which is the whole risk.
+    if f.endswith('.gz'):
+        return gzip.open(f, 'rt', encoding='utf-8', errors='replace').read()
+    return open(f, encoding='utf-8', errors='replace').read()
 
 
 def norm(p):
@@ -97,9 +105,14 @@ def main():
     # deletions can be spread across them
     files = []
     for t in (a.transcript or []):
-        if os.path.isdir(t): files += sorted(os.path.join(t, f) for f in os.listdir(t) if f.endswith('.jsonl'))
+        if os.path.isdir(t): files += sorted(os.path.join(t, f) for f in os.listdir(t) if f.endswith(('.jsonl', '.jsonl.gz', '.md')))
         elif os.path.exists(t): files.append(t)
-    text = '\n'.join(open(f, encoding='utf-8', errors='replace').read() for f in files)
+    # transcripts were asked for but none could be opened: that is NOT a verdict. Empty here reads
+    # as "no deletions found", which is how a rename, a typo or a gzip step becomes a clean bill.
+    if a.transcript and not files:
+        print('NOT-GRADED: --transcript given, 0 readable files - nothing was examined')
+        return 4
+    text = '\n'.join(_read(f) for f in files)
     tried = sorted(set(deletions(text, ever, entity_names(text))))
 
     for why, f in lost:

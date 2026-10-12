@@ -14,7 +14,7 @@ world/log.md - not guessed from prose. Three separate versions of this file got 
 evening: reads that counted edits, tunables that silently fell back to defaults when one label field
 was blank, and a close detector that only recognised bullets shaped like `- slug:`.
 """
-import sys, re, traceback, json, os
+import sys, re, traceback, json, os, gzip
 import os, wordcount as wc     # option length is measured by one function, in one file
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -133,7 +133,10 @@ def log_sequence(text, want):
 def reads_per_turn(session_path, n):
     counts = []
     if not session_path or not os.path.exists(session_path): return None
-    for line in open(session_path, encoding='utf-8', errors='replace'):
+    lines = (gzip.open(session_path, 'rt', encoding='utf-8', errors='replace')
+             if session_path.endswith('.gz') else
+             open(session_path, encoding='utf-8', errors='replace'))
+    for line in lines:
         try: r = json.loads(line)
         except Exception: continue
         m = r.get('message') or {}
@@ -164,7 +167,8 @@ def main():
     ts = turns_of(text)
     if not ts:
         print('  skip  no turns recorded (single-turn file or aborted run)'); return 0
-    sess = path + '.session.jsonl' if os.path.exists(path + '.session.jsonl') else ''
+    sess = next((p for p in (path + '.session.jsonl', path + '.session.jsonl.gz')
+                   if os.path.exists(p)), '')
     LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
     CAP, CAPSRC = beat_cap(text, lab.group(0) if lab else '')
     TABLE = coverage_table(text)

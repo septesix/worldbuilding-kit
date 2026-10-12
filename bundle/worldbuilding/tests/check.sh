@@ -843,16 +843,45 @@ L
   # regression witness, on evidence rather than synthetic input: two runs the old fixture-only check
   # certified as canon-clean did `rm encyclopedia/lighthouse-place.md` mid-session. If the detector ever
   # drifts back to blindness, this fails on real transcripts, not just on my hand-built ones.
-  for j in "$REPO"/evidence/retcon-skill-multi-20260930T041517Z.md.session.jsonl \
-           "$REPO"/evidence/close-skill-multi-20260930T160047Z.md.session.jsonl; do
-    if [ -f "$j" ]; then
-      python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$j" \
-        >"$TMP/ccx.out" 2>&1; rc=$?
-      crash $rc && [ $rc = 1 ] && grep -q 'attempted deletion' "$TMP/ccx.out" \
-        && ok "selftest: detector still flags a past run the old gate passed ($(basename "$j" | cut -c1-28))" \
-        || no "selftest: a historically blind run now reads clean (rc=$rc) - the witness regressed"
+  # A missing witness transcript used to skip this loop silently. That is the same defect the whole
+  # suite exists to catch: a gate that grades nothing reports success. Renaming an artifact - including
+  # by the gzip trim that shrank evidence/ - must fail here, loudly, not quietly.
+  for j in "$REPO"/evidence/retcon-skill-multi-20260930T041517Z.md.session.jsonl.gz \
+           "$REPO"/evidence/close-skill-multi-20260930T160047Z.md.session.jsonl.gz; do
+    if [ ! -f "$j" ]; then
+      no "selftest: canon witness transcript absent ($(basename "$j" | cut -c1-30)) - graded 0 runs"
+      continue
+    fi
+    python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$j" \
+      >"$TMP/ccx.out" 2>&1; rc=$?
+    if [ "$rc" = 4 ]; then
+      no "selftest: canon witness opened nothing from $(basename "$j" | cut -c1-30) - NOT-GRADED, not clean"
+    elif crash $rc && [ $rc = 1 ] && grep -q 'attempted deletion' "$TMP/ccx.out"; then
+      ok "selftest: detector still flags a past run the old gate passed ($(basename "$j" | cut -c1-28))"
+    else
+      no "selftest: a historically blind run now reads clean (rc=$rc) - the witness regressed"
     fi
   done
+
+  # Two-sided, because a reader that always finds deletions is as useless as one that finds none: this
+  # gzipped log is a real run in which no entity file was ever removed, so it must read clean.
+  local neg="$REPO/evidence/cadence-skill-multi-20260930T033652Z.md.session.jsonl.gz"
+  if [ -f "$neg" ]; then
+    python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$neg" \
+      >"$TMP/ccn.out" 2>&1; rc=$?
+    crash $rc && [ $rc = 0 ] \
+      && ok "selftest: gzipped deletion-free log reads clean (rc=0)" \
+      || no "selftest: gz reader disagrees on a deletion-free log (rc=$rc)"
+  else
+    no "selftest: gz negative-control log absent - the compressed read path went ungraded"
+  fi
+
+  # And the third state, which is the one that hides: nothing readable must not return 0.
+  python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" \
+    --transcript "$REPO/evidence/no-such-run.jsonl.gz" >"$TMP/cci.out" 2>&1; rc=$?
+  [ "$rc" = 4 ] && grep -q NOT-GRADED "$TMP/cci.out" \
+    && ok "selftest: unreadable transcript exits 4 NOT-GRADED, never a silent pass" \
+    || no "selftest: unopenable transcript returned rc=$rc - 'nothing read' looks like 'nothing found'"
 
   # guidance_key() must move when guidance moves, and NOT move when only a test moves
   local k1 k2; k1=$(guidance_key)

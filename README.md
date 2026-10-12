@@ -52,6 +52,19 @@ Behavioural evidence is keyed to a hash of the guidance files, not the commit: `
 reports how many transcripts still apply to the build being graded and refuses to count the rest as
 passing. A green static suite therefore never implies "tested recently" — read both lines.
 
+## The evidence corpus
+
+`evidence/` is why "tested" means something here: 44 run dumps plus 10 raw session logs, each `.md`
+recording the guidance key and commit it ran at. The raw logs are stored gzipped (2.9 MB of machine
+transcripts, 0.7 MB on disk) and both readers accept either form, so compressing an artifact can never
+make a detector blind by changing its name. History is untouched - the originals stay in their commits,
+and the 23 evidence files that cite a commit SHA still resolve. `check.sh` grades the compressed
+witness logs and fails if one goes missing, because a regression check that silently skips reports
+success on nothing.
+
+Read `check.sh behavior`'s first line before believing any green tick: it says how many of the 36
+transcripts still apply to the build being graded, and the rest are excluded rather than counted.
+
 ## Licence and ownership of your writing
 
 MIT — see [LICENSE](LICENSE). Free to use, copy, modify, redistribute, commercially or not.
