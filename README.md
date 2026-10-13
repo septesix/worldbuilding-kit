@@ -54,7 +54,7 @@ passing. A green static suite therefore never implies "tested recently" — read
 
 ## The evidence corpus
 
-`evidence/` is why "tested" means something here: 44 run dumps plus 10 raw session logs, each `.md`
+`evidence/` is why "tested" means something here: 56 run dumps plus 10 raw session logs, each `.md`
 recording the guidance key and commit it ran at. The raw logs are stored gzipped (2.9 MB of machine
 transcripts, 0.7 MB on disk) and both readers accept either form, so compressing an artifact can never
 make a detector blind by changing its name. History is untouched - the originals stay in their commits,
@@ -62,8 +62,13 @@ and the 23 evidence files that cite a commit SHA still resolve. `check.sh` grade
 witness logs and fails if one goes missing, because a regression check that silently skips reports
 success on nothing.
 
-Read `check.sh behavior`'s first line before believing any green tick: it says how many of the 36
-transcripts still apply to the build being graded, and the rest are excluded rather than counted.
+Read `check.sh behavior`'s first line before believing any green tick: it says how many of the 42
+recorded skill-arm transcripts carry the guidance key being graded, and the rest are excluded rather
+than counted. Two states are never merged into a pass: a run whose model never spoke (there was one in
+the 2026-10-13 batch, turn 9 of a 12-turn `close`) is excluded as infrastructure, and a run that
+breached is reported as a breach. As of that batch, 7 of 42 apply to the current key and 5 of those 7
+carry a verdict - so the static suite is 170 green assertions about text, and behaviour is graded on a
+handful of runs, which is the honest shape of this evidence and not a problem to be phrased away.
 
 ## Licence and ownership of your writing
 
