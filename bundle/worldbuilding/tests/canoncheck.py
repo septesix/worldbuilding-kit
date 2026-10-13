@@ -18,6 +18,7 @@ Exit: 0 clean | 1 canon lost or attempted. Lines start with CANON-LOSS so `grep 
 run.sh / multiturn.sh / check.sh keeps working unchanged.
 """
 import sys, os, re, argparse, gzip
+import harness_markers as hm
 
 
 def _read(f):
@@ -111,8 +112,10 @@ def main():
     # as "no deletions found", which is how a rename, a typo or a gzip step becomes a clean bill.
     if a.transcript and not files:
         print('NOT-GRADED: --transcript given, 0 readable files - nothing was examined')
-        return 4
+        return hm.NOT_GRADED
     text = '\n'.join(_read(f) for f in files)
+    # verdict lines the harness appended to this same artifact are not evidence about the run
+    text = hm.strip(text)
     tried = sorted(set(deletions(text, ever, entity_names(text))))
 
     for why, f in lost:

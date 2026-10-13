@@ -26,6 +26,7 @@ cp -R "$FIX/." "$WORK/"
 # been seen to consume the turn with no assistant text at all - an eaten turn then looks like a
 # 0-question violation of the turn contract. Turn 1 creates the session; later turns name the file.
 SID=""
+TURNFAIL=""   # turns whose pi call failed - a typed fact, not a string to grep later
 
 args=(--no-extensions --no-skills)
 [ "$VAR" = skill ] && args+=(--skill "$BUNDLE")
@@ -60,7 +61,7 @@ RPT=$(awk '/reads_per_turn:/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
     sidargs=(); [ -n "$SID" ] && sidargs=(--session "$SID")
     TOUT="$SESS/turn$((i + 1)).txt"
     ( cd "$WORK" && "${CLEAN[@]}" timeout "$TURN_TIMEOUT" pi "${args[@]}" --session-dir "$SESS" "${sidargs[@]}" -p "${TURNS[$i]}" ) > "$TOUT" 2>&1 \
-      || echo "INFRA-FAIL: turn $((i + 1)) exited nonzero or timed out"
+      || { TURNFAIL="$TURNFAIL $((i + 1))"; echo "INFRA-FAIL: turn $((i + 1)) exited nonzero or timed out"; }
     [ -z "$SID" ] && SID=$(find "$SESS" -name '*.jsonl' | head -1)
     cat "$TOUT"
     # text the writer would actually read - excludes the scripted reply and pi's own notices.
@@ -75,8 +76,7 @@ RPT=$(awk '/reads_per_turn:/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
   # append-only canon at the file level (F6). The old loop compared only against the fixture, so the
   # retcon runs could `rm encyclopedia/lighthouse-place.md` - a file created earlier in the same
   # session - and the canon counts stayed green. Three witnesses now: start state, ever-seen, tool calls.
-  python3 "$HERE/canoncheck.py" --dir "$WORK" --fixture "$FIX" --seen "$SEEN" --transcript "$SESS" \
-    || echo "CANON-LOSS: encyclopedia file count went down during the run (see canoncheck)"
+  # canoncheck runs after this artifact closes - note below the block
   echo "## encyclopedia files seen"; sort -u "$SEEN"
   [ -n "${EMPTY:-}" ] && echo "INFRA-FAIL: no assistant text in turn(s)$EMPTY - session/launch issue, not a contract breach"
   echo "## canon counts"
@@ -88,8 +88,24 @@ RPT=$(awk '/reads_per_turn:/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
   if [ -n "$S" ]; then cp "$S" "$OUT.session.jsonl"; echo "copied: $(basename "$OUT").session.jsonl ($(wc -l < "$OUT.session.jsonl") records)"; else echo "MISSING: no session log written"; fi
 } > "$OUT" 2>&1
 
+# Graders run against a closed artifact and their output lands in one reserved section. The CANON-LOSS
+# verdict used to be echoed into the stream and read back out of the same file by this script's own grep,
+# which is a verdict citing itself as a fact about the run.
+VDT="$(mktemp)"; CCRC=0
+python3 "$HERE/canoncheck.py" --dir "$WORK" --fixture "$FIX" --seen "$SEEN" --transcript "$SESS" >"$VDT" 2>&1 || CCRC=$?
+[ "$CCRC" = 1 ] && echo "CANON-LOSS: encyclopedia file count went down during the run (canoncheck rc=1)" >>"$VDT"
+[ "$CCRC" = 64 ] && echo "NOT-GRADED: canoncheck could not examine the run (rc=64)" >>"$VDT"
+{ echo; echo "## harness verdicts"; cat "$VDT"; } >> "$OUT"
+
 CONT=0
-INFRA=0; grep -q 'INFRA-FAIL\|MISSING: no session' "$OUT" && { INFRA=1; echo "INFRA-FAIL -> $OUT"; }
+# Decided from typed state, not by grepping the artifact. The old test searched the file for INFRA-FAIL
+# (a string this script writes from several places) and for MISSING: no session, which the session-log
+# branch does emit - so both facts now arrive as variables instead of as prose to pattern-match.
+INFRA=0
+[ -z "${TURNFAIL:-}" ] || INFRA=1
+[ -z "${EMPTY:-}" ] || INFRA=1
+ls "$SESS"/*.jsonl >/dev/null 2>&1 || INFRA=1
+[ "$INFRA" = 1 ] && echo "INFRA-FAIL -> $OUT"
 grep -qiE "SDD ledger|gate-report|Ruling [0-9]|progress\.md" "$OUT" && { CONT=1; echo "CONTAMINATED -> $OUT"; }
 [ "$INFRA" = 0 ] && echo "clean -> $OUT"
 CANONLOST=0; grep -q '^CANON-LOSS' "$OUT" && { CANONLOST=4; echo "CANON-LOSS (append-only breached) -> $OUT"; }

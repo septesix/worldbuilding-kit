@@ -17,7 +17,10 @@ Exit bitmask:
   1   a review was owed (>= threshold sessions since the last `provoked: review`) and not delivered
   2   a review was delivered but the memo is incomplete - five named items, each answered
   4   a review was delivered but never logged as `provoked: review`, so the next session reviews again
-  128 instrument crash, never a finding
+   64   NOT-GRADED - the artifact could not be examined. Its own code, not bit 4: this file used
+      to return 4 for that, and 4 also means "delivered but unlogged", so one integer carried
+      "nothing was read" and "a finding" at once and run.sh tested both readings
+    128 instrument crash, never a finding
 
 Sessions are counted as `## <date> (session N)` headers after the last line carrying
 `provoked: review`; that type is one of the eight the machine line already records, so the trigger
@@ -25,6 +28,7 @@ needs no new state. If the log has never carried `provoked: review`, the count i
 file - which is the honest reading of "since the last one" when there was none.
 """
 import sys, os, re, argparse
+import harness_markers as hm
 
 ITEMS = {
     'contradictions': r'contradiction',
@@ -59,16 +63,20 @@ if __name__ == '__main__':
     ap.add_argument('--threshold', type=int, default=3)
     a = ap.parse_args()
     try:
-        t = open(a.evidence, encoding='utf-8', errors='replace').read()
+        raw = open(a.evidence, encoding='utf-8', errors='replace').read()
+        # strip before scanning: the harness writes its own verdicts into this same file, and
+        # one of those sentences contains the literal 'provoked: review' that decides bit 4, so
+        # reading the artifact raw could fake a crash or erase a finding on a re-grade
+        t = hm.strip(raw)
         # the log is authoritative for session counts; the evidence dump is a convenience copy of it
         lt = open(a.log, encoding='utf-8', errors='replace').read() if a.log and os.path.exists(a.log) else t
         gap = sessions_since_review(lt)
-        if 'INFRA-FAIL' in t:
+        if hm.aborted(raw):
             print('  NOT-GRADED: the run recorded an infrastructure failure - not evidence either way')
-            sys.exit(4)
+            sys.exit(hm.NOT_GRADED)
         if lt == t and '## 2026-' not in t:
             print('  NOT-GRADED: no session headers visible - the log was not in the artifact')
-            sys.exit(4)
+            sys.exit(hm.NOT_GRADED)
         done = bool(REVIEW_DONE.search(t))
         rc = 0
         if not done and gap >= a.threshold:

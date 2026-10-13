@@ -12,6 +12,7 @@ Counting either against the conversational budget makes the cap unsatisfiable by
 turn, which is what the first version of this tool did (see spec revision R-3).
 """
 import sys, re
+import harness_markers as hm
 
 OPT   = re.compile(r'^\s*[-*] ?\*{0,2}(steady|sharp|strange)\b\*{0,2}\s*[—:-]?', re.I)
 # the option is what the writer reads, not the markup presenting it. Counting the bullet, the label and
@@ -63,44 +64,78 @@ def wc_words(line):
 
 
 def measure(path):
-    t = open(path, encoding='utf-8', errors='replace').read()
-    if '## transcript' not in t: return None
-    body = t.split('## transcript', 1)[1].split('## files after run', 1)[0]
-    body = re.sub(r'## pi exit status.*', '', body, flags=re.S)
-    memo, lines = memo_split(body.split('\n'))
-    memo = [l for l in memo if not OPT.match(l)]
-    turn, opts, recap = [], [], []
-    for l in lines:
-        (opts if OPT.match(l) else recap if (RECAP.match(l) or CLOSE.match(l)) else turn).append(l)
-    w = len(' '.join(turn).split())
-    if w <= 10 and not opts and not recap and not memo:
-        return None                                  # empty/aborted transcript: no verdict
-    items = [wc_words(l) for l in memo if MEMO_ITEM.match(l)]
-    return (w, [option_words(l) for l in opts], len(recap), items or [sum(wc_words(l) for l in memo)],
-            memo_cap(t))
+    """(worst turn words, option lengths, recap count, memo item lengths, memo cap, turns graded,
+    turns skipped) for one artifact, or None when nothing in it could be read.
+
+    Multi-turn runs used to return None: they carry `## turn N` sections and no `## transcript`, so the
+    length cap was never measured in the mode where prose grows longest, and the gate printed `skip`
+    where it meant `never looked`. An eaten turn (nothing produced) is skipped on its own and does not
+    void the rest of the run - it is neither a pass nor a breach.
+    """
+    t = hm.strip(open(path, encoding='utf-8', errors='replace').read())
+    bodies = []
+    if '## transcript' in t:
+        bodies = [t.split('## transcript', 1)[1].split('## files after run', 1)[0]]
+    elif '## turn ' in t:
+        parts = re.split(r'\n?## turn \d+[^\n]*\n', t)
+        bodies = [re.split(r'\n## (?!turn \d)', seg, 1)[0] for seg in parts[1:]]
+    else:
+        return None
+    bodies = [re.sub(r'## pi exit status.*', '', b, flags=re.S) for b in bodies]
+    worst = None; graded = skipped = 0
+    for b in bodies:
+        memo, lines = memo_split(b.split('\n'))
+        memo = [l for l in memo if not OPT.match(l)]
+        turn, opts, recap = [], [], []
+        for l in lines:
+            # `writer:` is the harness echoing the scripted turn, not the model's prose. Counting it
+            # inflated multi-turn runs by ~9 words and made the two gates disagree about one number.
+            if l.startswith('writer:'):
+                continue
+            (opts if OPT.match(l) else recap if (RECAP.match(l) or CLOSE.match(l)) else turn).append(l)
+        w = len(' '.join(turn).split())
+        if w <= 10 and not opts and not recap and not memo:
+            skipped += 1
+            continue
+        graded += 1
+        items = [wc_words(l) for l in memo if MEMO_ITEM.match(l)]
+        m = (w, [option_words(l) for l in opts], len(recap),
+             items or [sum(wc_words(l) for l in memo)], memo_cap(t))
+        if worst is None or w > worst[0]:
+            worst = m
+    if not graded:
+        return None
+    return worst + (graded, skipped)
+
 
 if __name__ == '__main__':
     files = [a for a in sys.argv[1:] if not a.isdigit()]
     args = [a for a in sys.argv[1:] if a.isdigit()]
     limit = int(args[0]) if args else 160
-    bad_turn = bad_aux = 0
+    bad_turn = bad_aux = 0; nfiles = nskip = 0
     for f in sorted(files):
         m = measure(f)
         if m is None:
-            print(f'  skip  {f} (no transcript, or an aborted run - not counted as a pass)'); continue
-        w, opts, recap, memo_w, memo_lim = m
+            nskip += 1
+            print(f'  skip  {f} (no readable turn block, or every turn produced nothing)'); continue
+        w, opts, recap, memo_w, memo_lim, nt, ns = m
+        nfiles += 1
         over_opt = [o for o in opts if o > 18]
         over_memo = max(memo_w) > memo_lim
         flag = 'ok  ' if w <= limit and not over_opt and recap <= 6 and not over_memo else 'OVER'
         bad_turn += w > limit
         bad_aux += bool(over_opt) or recap > 6 or over_memo
-        print(f'  {flag}  {w:4d} turn words (limit {limit}) | {len(opts)} options'
+        scope = '' if nt <= 1 else f' | {nt} turns graded' + (f' ({ns} produced nothing)' if ns else '')
+        print(f'  {flag}  {w:4d} turn words (limit {limit}){scope} | {len(opts)} options'
               f'{", longest " + str(max(opts)) if opts else ""} | {recap} recap bullets'
               f'{" | memo max item " + str(max(memo_w)) + "w (limit " + str(memo_lim) + ")" if memo_w else ""}'
               f'{"  <-- " + ",".join(str(o) for o in over_opt) + "-word options" if over_opt else ""}'
               f'{"  <-- recap > 6" if recap > 6 else ""}'
               f'{"  <-- memo over " + str(memo_lim) + "w" if over_memo else ""}  <- {f.split("/")[-1]}')
-    # exit: 0 clean | 1 turn cap | 2 options/recap appendix limits | 3 both - so the caller can say
-    # which instrument rang, instead of reporting a turn overrun when the options were too long.
+    # exit: 0 clean | 1 turn cap | 2 options/recap appendix limits | 3 both | 64 NOTHING GRADED
+    # so the caller can say which instrument rang, instead of reporting a turn overrun when the options
+    # were too long - and, newly, instead of reporting 0 when every file was skipped. A run where nothing
+    # was readable is not a clean run; the two used to share the byte.
+    if nfiles == 0:
+        sys.exit(hm.NOT_GRADED)
     sys.exit((1 if bad_turn else 0) | (2 if bad_aux else 0))
-

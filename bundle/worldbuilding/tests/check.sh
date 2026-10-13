@@ -485,7 +485,7 @@ L3
   [ "$((rc & 1))" = 1 ] && ok "selftest: wordcount catches an over-budget turn (rc=$rc)" || no "selftest: wordcount MISSES an over-budget turn (rc=$rc)"
   { echo "# x"; echo '## transcript'; echo; echo '## files after run'; } > "$TMP/empty.md"
   python3 "$B/tests/wordcount.py" "$TMP/empty.md" 160 >"$TMP/empty.out" 2>&1; rc=$?
-  { [ "$rc" = 0 ] && grep -q skip "$TMP/empty.out"; } && ok "selftest: wordcount skips an aborted run instead of passing it" || no "selftest: wordcount scored an aborted run (rc=$rc)"
+  { [ "$rc" = 64 ] && grep -q skip "$TMP/empty.out"; } && ok "selftest: wordcount grades nothing on an aborted run (rc=64, never a silent 0) instead of passing it" || no "selftest: wordcount scored an aborted run (rc=$rc)"
   { echo "# x"; echo '## transcript'; echo '- steady — one two three'; echo "- sharp — $(yes word | head -22 | tr '\n' ' ')"; echo '## files after run'; } > "$TMP/both.md"
   python3 "$B/tests/wordcount.py" "$TMP/both.md" 160 >/dev/null 2>&1
   [ $? = 2 ] && ok "selftest: wordcount separates turn from appendix failures" || no "selftest: wordcount cannot say which limit rang"
@@ -701,7 +701,7 @@ writer: continue
 INFRA-FAIL: turn 2 timed out
 RV
   python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvinfra.md" >"$TMP/rvinfra.out" 2>&1; rc=$?
-  [ "$rc" = 4 ] && grep -q NOT-GRADED "$TMP/rvinfra.out" \
+  [ "$rc" = 64 ] && grep -q NOT-GRADED "$TMP/rvinfra.out" \
     && ok "selftest: an aborted run is NOT-GRADED, neither a pass nor a breach" \
     || no "selftest: an aborted run was scored as evidence (rc=$rc)"
   # heredocs, not printf '%s\n' with escapes in the ARGUMENT: printf leaves \\n literal there, so the
@@ -879,8 +879,8 @@ L
   # And the third state, which is the one that hides: nothing readable must not return 0.
   python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" \
     --transcript "$REPO/evidence/no-such-run.jsonl.gz" >"$TMP/cci.out" 2>&1; rc=$?
-  [ "$rc" = 4 ] && grep -q NOT-GRADED "$TMP/cci.out" \
-    && ok "selftest: unreadable transcript exits 4 NOT-GRADED, never a silent pass" \
+  [ "$rc" = 64 ] && grep -q NOT-GRADED "$TMP/cci.out" \
+    && ok "selftest: unreadable transcript exits 64 NOT-GRADED, never a silent pass" \
     || no "selftest: unopenable transcript returned rc=$rc - 'nothing read' looks like 'nothing found'"
 
   # guidance_key() must move when guidance moves, and NOT move when only a test moves
@@ -895,6 +895,85 @@ L
   [ "$(guidance_key)" = "$k1" ] && ok "selftest: guidance key restored with the file" || no "selftest: guidance key unstable across a restore"
   k2=$( { cd "$REPO" && git rev-parse HEAD:bundle/worldbuilding/tests | cksum; } | awk '{printf "%08x",$1}')
   [ "$k1" != "$k2" ] && ok "selftest: guidance key is not the bundle tree hash (tests excluded)" || no "selftest: guidance key degenerated to a bundle hash"
+
+  # ---- harness text must never speak for the run (found re-grading the 2026-10-13 batch) ----
+  # run.sh wrote its verdict lines into the same artifact it hands to the graders, and reviewcheck then
+  # substring-matched them: 'INFRA-FAIL' faked an aborted run, and its own message contains the literal
+  # 'provoked: review' that decides the marker-missing finding - so a re-grade could erase a breach.
+  local rv="$TMP/rv" vc vp vi vm
+  mkdir -p "$rv"
+  {
+    echo '# review-owed (skill) probe'; echo 'label: commit=probe guidance=deadbeef spec_rev=R-15'
+    echo '## prompt'; echo 'continue where we left off'
+    echo '## transcript'
+    echo '**Review** · consistency memo over five sessions.'
+    echo '- contradictions: the lock keeps no record yet every crossing is logged'
+    echo '- orphans: severins-child is named by two threads and filed nowhere'
+    echo '- texture-less pillars: economy-trade has tolls but nothing eaten, worn, or timed'
+    echo '- unvetted proposed: the war ending by ledger is still proposed, not established'
+    echo '- treadmill: four of five sessions provoked consequence only, one type in a row'
+    echo '## pi exit status: 0'
+    echo '## files after run'; echo './world/log.md'
+  } > "$rv/clean.md"
+  { local i; for i in 1 2 3 4 5; do printf '## 2026-09-%02d (session %s)\n- decided: thing %s\n' "$((i*4))" "$i" "$i"; done; } > "$rv/log.md"
+  cp "$rv/clean.md" "$rv/poisoned.md"
+  {
+    echo '  NOT-GRADED: the run recorded an infrastructure failure - not evidence either way'
+    echo 'INFRA-FAIL: pi exited nonzero (rc=0, timeout 900s)'
+    echo '  REVIEW-FAIL: the review was never logged as provoked: review - the trigger cannot reset'
+  } >> "$rv/poisoned.md"
+
+  python3 "$B/tests/reviewcheck.py" --evidence "$rv/clean.md" --log "$rv/log.md" >"$rv/a.out" 2>&1; vc=$?
+  if [ "$vc" != 64 ] && [ $((vc & 4)) != 0 ]; then
+    ok "selftest: delivered-but-unlogged review stays a finding (bit 4), not NOT-GRADED (rc=$vc)"
+  else
+    no "selftest: reviewcheck returned rc=$vc for a delivered-but-unlogged review (want bit 4, no 64)"
+  fi
+  python3 "$B/tests/reviewcheck.py" --evidence "$rv/poisoned.md" --log "$rv/log.md" >"$rv/b.out" 2>&1; vp=$?
+  if [ "$vp" = "$vc" ] && ! grep -q 'NOT-GRADED' "$rv/b.out"; then
+    ok "selftest: verdict text inside the artifact cannot change a verdict (rc=$vp, no NOT-GRADED)"
+  else
+    no "selftest: the grader read its own output - clean rc=$vc, poisoned rc=$vp, NOT-GRADED said: $(grep -c NOT-GRADED "$rv/b.out")"
+  fi
+
+  cp "$rv/clean.md" "$rv/infra.md"; sed -i 's/^## pi exit status: 0$/## pi exit status: 1/' "$rv/infra.md"
+  python3 "$B/tests/reviewcheck.py" --evidence "$rv/infra.md" --log "$rv/log.md" >"$rv/c.out" 2>&1; vi=$?
+  [ "$vi" = 64 ] && [ $((vi & 7)) = 0 ] \
+    && ok "selftest: a nonzero pi status exits 64 NOT-GRADED, outside the finding bitmask" \
+    || no "selftest: an aborted run returned rc=$vi (want 64, so it cannot be misread as bit 4)"
+
+  # the same contamination on a real file from the batch: it must still yield its own finding
+  if [ -f "$REPO/evidence/review-owed-skill-20261013T033616Z.md" ]; then
+    python3 "$B/tests/reviewcheck.py" --evidence "$REPO/evidence/review-owed-skill-20261013T033616Z.md" \
+      --log "$B/tests/fixtures/established/world/log.md" >"$rv/d.out" 2>&1; vm=$?
+    if [ "$vm" != 64 ] && [ $((vm & 4)) != 0 ] && ! grep -q 'NOT-GRADED' "$rv/d.out"; then
+      ok "selftest: the certified review-owed run re-grades to its finding (rc=$vm)"
+    else
+      no "selftest: review-owed re-graded as rc=$vm - the bit-4 finding was lost to verdict text"
+    fi
+  fi
+
+  # coverage hole: wordcount skipped multi-turn files that behavior selected, so the one mode never
+  # measured for length reported as ungraded silence. Graded on the real 5-turn run.
+  if [ -f "$REPO/evidence/retcon-skill-multi-20261013T042410Z.md" ]; then
+    python3 "$B/tests/wordcount.py" "$REPO/evidence/retcon-skill-multi-20261013T042410Z.md" 170 \
+      >"$rv/e.out" 2>&1; wc_rc=$?
+    [ "$wc_rc" = 1 ] && ok "selftest: the turn cap is graded on multi-turn runs too (rc=1)" \
+      || no "selftest: wordcount returned rc=$wc_rc on a multi-turn file it must grade (was skipped)"
+    # and the two instruments must agree on what a turn weighs: they disagreed by 9 words per turn until
+    # wordcount counted the harness's own `writer:` echo as prose. Same quantity, one number.
+    aw=$(python3 "$B/tests/wordcount.py" "$REPO/evidence/retcon-skill-multi-20261013T042410Z.md" 170 2>/dev/null | grep -oE ' (ok|OVER) +[0-9]+' | grep -oE '[0-9]+')
+    ai=$(python3 "$B/tests/invariants.py" "$REPO/evidence/retcon-skill-multi-20261013T042410Z.md" 2>/dev/null | grep -oE 'turn [0-9]+: +[0-9]+w' | grep -oE '[0-9]+w' | tr -d w | sort -rn | head -1)
+    [ -n "$aw" ] && [ "$aw" = "$ai" ] \
+      && ok "selftest: wordcount and invariants agree on turn words ($aw)" \
+      || no "selftest: turn words differ by instrument (wordcount=$aw, invariants=$ai) - the cap would mean two things"
+  fi
+
+  # a run where nothing could be read must not exit 0. It used to: every file skipped, bad_turn stayed 0.
+  printf '# empty (skill) probe\nlabel: commit=probe guidance=deadbeef\n## transcript\n\n## files after run\n' > "$rv/none.md"
+  python3 "$B/tests/wordcount.py" "$rv/none.md" 170 >"$rv/f.out" 2>&1; vn=$?
+  [ "$vn" = 64 ] && ok "selftest: wordcount with nothing graded exits 64, not a clean 0" \
+    || no "selftest: wordcount returned rc=$vn having graded nothing (want 64 - 0 reads as compliance)"
 
   rm -rf "$TMP"
 }
@@ -920,4 +999,18 @@ case "${1:-all}" in
     fi
     for f in harness fixture templates rubric voice method kit; do echo "[$f]"; $f; done;;
 esac
+# The suite's size is quoted in README and in the workflow as a claim about coverage, and nothing kept
+# those figures honest: a trim or a new assertion left the prose describing a run that no longer happens.
+case "${1:-all}" in
+  all)
+    want=$((PASS + FAIL + 1))
+    have=$(grep -ohE '[0-9]+ static assertions' "$REPO/README.md" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+    wf=$(grep -ohE 'static suite \([0-9]+ assertions\)' "$REPO/.github/workflows/ci.yml" 2>/dev/null | grep -oE '[0-9]+' | head -1)
+    if [ "${have:-}" = "$want" ] && [ "${wf:-}" = "$want" ]; then
+      ok "shipped prose quotes this run's assertion count ($want)"
+    else
+      no "prose disagrees with the suite: README=$have, workflow=$wf, this run=$want"
+    fi ;;
+esac
+
 echo "check.sh: $PASS passed, $FAIL failed"; [ "$FAIL" = 0 ]

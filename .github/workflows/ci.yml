@@ -9,7 +9,7 @@ name: checks
 # prevent. If you want behaviour in CI, that is a different project - a pinned model with an API key and
 # a budget - and the honest result would still need `N graded of M` printed, not just a tick.
 #
-# What does run here is the part CI is good at: 170 assertions about the guidance files, the templates,
+# What does run here is the part CI is good at: 178 assertions about the guidance files, the templates,
 # the fixtures, and whether the gates themselves can still fail.
 
 on:
@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   static:
-    name: static suite (170 assertions)
+    name: static suite (178 assertions)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
