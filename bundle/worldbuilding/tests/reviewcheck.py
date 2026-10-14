@@ -40,13 +40,31 @@ ITEMS = {
 # the run that proved this list was too narrow delivered '**Memo** (review owed, sessions 1-4):' and my
 # detector called it 'none delivered' - a false red on the best memo in the archive. Match the artifact,
 # not one spelling of its heading.
+# A review is recorded as a TYPE on the machine line, and runs write that field as a list
+# (`provoked: discovery, review`). Matching the literal 'provoked: review' recognised only the singular
+# spelling, so a compliant compound line read as "never logged" (bit 4) and inflated the owed gap at the
+# same time - both errors pointing the same way, toward more failures than exist. The guidance is
+# ambiguous about the spelling; the detector is not allowed to be.
+PROVOKED_FIELD = re.compile(r'\bprovoked:[^\n\u00b7]*\breview\b', re.I)
+
+
+def review_marker_lines(text):
+    """Lines that ARE a logged review: a machine line, with `review` inside the provoked field.
+
+    Field-delimited on purpose. Matching the bare phrase would let guidance quoted in a transcript - a
+    model repeating "count the sessions after the last line carrying `provoked: review`" - reset the
+    counter, which is the same confusion this file keeps tripping over in a new costume: words about the
+    marker treated as the marker. The separator is what makes a machine line a machine line.
+    """
+    return [l for l in text.split('\n') if '\u00b7' in l and PROVOKED_FIELD.search(l)]
+
 REVIEW_DONE = re.compile(r'provoked: review|consistency memo|\*\*\s*(review|memo)\b|review owed', re.I)
 SESSION = re.compile(r'^##\s+\d{4}-\d\d-\d\d.*session', re.M)
 
 
 def sessions_since_review(text):
     lines = text.split('\n')
-    last = max((i for i, l in enumerate(lines) if 'provoked: review' in l), default=-1)
+    last = max((i for i, l in enumerate(lines) if '\u00b7' in l and PROVOKED_FIELD.search(l)), default=-1)
     return len(SESSION.findall("\n".join(lines[last + 1:])))
 
 
@@ -90,7 +108,7 @@ if __name__ == '__main__':
                 rc |= 2
             else:
                 print(f'  review delivered, memo complete (5 items) | {gap} sessions since last review')
-                if 'provoked: review' not in t:
+                if not review_marker_lines(t):
                     print('  REVIEW-FAIL: the review was never logged as provoked: review - the trigger '
                           'cannot reset, so next session reviews again')
                     rc |= 4

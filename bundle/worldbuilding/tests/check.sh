@@ -224,11 +224,29 @@ behavior(){
   sbad=$(grep -l 'SEED-FAIL' $sel 2>/dev/null | wc -l)
   local rvn rvb; rvn=$(printf '%s\n' $sel | grep -cE 'review(-owed)?-skill')
   # an aborted run is not a pass and not a breach; grading it as either is the same lie twice
-  local rvg; rvg=$(grep -l 'NOT-GRADED\|INFRA-FAIL' $sel 2>/dev/null | wc -l)
-  rvb=$(grep -lE 'REVIEW-OWED|REVIEW-FAIL' $sel 2>/dev/null | wc -l)
+  # (rvg, the count recorded but not graded, is derived after the loop below)
+  # The review verdict is re-derived from the artifact rather than read out of it. Grepping the file for
+  # REVIEW-FAIL counted whatever an earlier version of this tool concluded when it wrote the record, so a
+  # corrected detector went on reporting a breach it no longer finds. Where a judgement needs a live
+  # directory (seeds, canon) re-derivation is impossible and the stored line is the only witness; those
+  # stay grepped, which is why they are described as run-time graded rather than as evidence.
+  rvb=0; rvu=0; rvc=0
+  for rf in $(printf '%s\n' $sel | grep -E 'review(-owed)?-skill'); do
+    # the exit status is captured directly: an earlier draft redirected to "$TMP/rvx.out", but TMP is
+    # not defined in this function, so the redirect failed and a permission error of 1 was tallied as
+    # a contract breach - an instrument failure entering the count as a finding about the model
+    x=$(python3 "$B/tests/reviewcheck.py" --evidence "$rf" >/dev/null 2>&1; echo $?)
+    case "$x" in
+      0)   ;;                       # graded, and clean
+      64)  rvu=$((rvu + 1)) ;;     # NOT-GRADED: counted nowhere, reported below
+      128) rvc=$((rvc + 1)) ;;     # instrument crash: never a finding
+      *)   rvb=$((rvb + 1)) ;;
+    esac
+  done
+  rvg=$((rvu + rvc))                  # recorded but not graded - re-derived, not grepped
   if [ "${rvn:-0}" = 0 ]; then echo "  note  behavior: no review run under this guidance key - I5 untested by these artifacts"
   elif [ "${rvn}" = "${rvg}" ]; then echo "  note  behavior: $rvn review run(s) recorded but none gradeable (aborted or logless) - I5 stays open"
-  elif [ "${rvb:-0}" != 0 ]; then no "$rvb of $rvn review run(s) breached the review contract"
+  elif [ "${rvb:-0}" != 0 ]; then no "$rvb of $rvn review run(s) breached the review contract (${rvu:-0} not graded, ${rvc:-0} instrument crash)"
   else ok "the recorded review run(s) met the contract (trigger and five-item memo)"; fi
   if [ "${nw:-0}" = 0 ]; then echo "  note  behavior: no new-world run under this guidance key - I4 untested by these artifacts"
   elif [ "${sbad:-0}" != 0 ]; then no "$sbad of $nw new-world run(s) failed the seed band (see SEED-FAIL in the evidence)"
@@ -944,12 +962,25 @@ L
 
   # the same contamination on a real file from the batch: it must still yield its own finding
   if [ -f "$REPO/evidence/review-owed-skill-20261013T033616Z.md" ]; then
+    # Written this morning insisting on bit 4 for this very file, and wrong twice over: the marker test
+    # did not know the list spelling, and --log pointed at the fixture instead of the run's own dump. The
+    # artifact records `provoked: discovery, review`, which IS a logged review, so it must grade clean.
+    # The teeth survive as a pair - the same bytes with the review type demoted must come back as bit 4,
+    # and 0 versus 4 out of one sed is what proves the check watches the marker rather than the mood.
     python3 "$B/tests/reviewcheck.py" --evidence "$REPO/evidence/review-owed-skill-20261013T033616Z.md" \
-      --log "$B/tests/fixtures/established/world/log.md" >"$rv/d.out" 2>&1; vm=$?
-    if [ "$vm" != 64 ] && [ $((vm & 4)) != 0 ] && ! grep -q 'NOT-GRADED' "$rv/d.out"; then
-      ok "selftest: the certified review-owed run re-grades to its finding (rc=$vm)"
+      >"$rv/d.out" 2>&1; vm=$?
+    if [ "$vm" = 0 ] && grep -q 'memo complete' "$rv/d.out"; then
+      ok "selftest: the certified review-owed run grades clean - marker logged, list spelling"
     else
-      no "selftest: review-owed re-graded as rc=$vm - the bit-4 finding was lost to verdict text"
+      no "selftest: review-owed graded rc=$vm though its compound marker records a delivered review"
+    fi
+    sed 's/provoked: discovery, review/provoked: discovery, consequence/' \
+      "$REPO/evidence/review-owed-skill-20261013T033616Z.md" > "$rv/demoted.md"
+    python3 "$B/tests/reviewcheck.py" --evidence "$rv/demoted.md" >"$rv/dm.out" 2>&1; vm=$?
+    if [ $((vm & 7)) = 4 ] && grep -q 'never logged' "$rv/dm.out"; then
+      ok "selftest: the same run with the review type demoted reports bit 4, not silence"
+    else
+      no "selftest: demoting the review marker changed nothing (rc=$vm) - the check is not watching it"
     fi
   fi
 
@@ -975,6 +1006,57 @@ L
   [ "$vn" = 64 ] && ok "selftest: wordcount with nothing graded exits 64, not a clean 0" \
     || no "selftest: wordcount returned rc=$vn having graded nothing (want 64 - 0 reads as compliance)"
 
+  # Review markers have two spellings and both must count. Real runs write the type into the machine
+  # line's list (`provoked: discovery, review`); SKILL.md's format line shows a single type. The detector
+  # matched only the joined form, so a logged review read as never logged - a false breach, and the
+  # counter never reset.
+  { echo "# T"; echo "## transcript"; echo '## 2026-10-13 (session 1)'
+    echo '- turn: 1 · provoked: discovery, review · targeted: daily-life'; echo
+    echo '**Memo**'; echo '- Contradictions: none'; echo '- Orphans: none'
+    echo '- Texture-less pillars: none'; echo '- Unvetted proposed: none'; echo '- Treadmill: even'
+  } > "$TMP/rvcompound.md"
+  python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvcompound.md" >"$TMP/rvc.out" 2>&1; rc=$?
+  { [ "$rc" = 0 ] && ! grep -q "never logged" "$TMP/rvc.out"; } \
+    && ok "selftest: a review logged in the list spelling counts as logged (rc=0)" \
+    || no "selftest: compound provoked list not recognised (rc=$rc) - a compliant run reads as a breach"
+  { echo "# T"; echo "## transcript"; echo '## 2026-10-13 (session 1)'
+    echo '- turn: 1 · provoked: cost · targeted: review-economy'; echo
+    echo '**Memo**'; echo '- Contradictions: none'; echo '- Orphans: none'
+    echo '- Texture-less pillars: none'; echo '- Unvetted proposed: none'; echo '- Treadmill: even'
+  } > "$TMP/rvpillar.md"
+  python3 "$B/tests/reviewcheck.py" --evidence "$TMP/rvpillar.md" >/dev/null 2>&1; rc=$?
+  [ "$rc" != 0 ] && ok "selftest: a pillar named review-* is not mistaken for a logged review (rc=$rc)" \
+    || no "selftest: 'targeted: review-economy' satisfied the review marker - the field is not delimited"
+  # and the reset itself, which is the part the model depends on
+  { echo "# T"; echo "## transcript"; echo '## 2026-09-01 (session 1)'
+    echo '- turn: 1 · provoked: discovery, review · targeted: daily-life'
+    echo '## 2026-09-02 (session 2)'; echo '- turn: 1 · provoked: cost · targeted: trade-currency'
+    echo '## 2026-09-03 (session 3)'; echo '- turn: 1 · provoked: consequence · targeted: geography'
+    echo '## 2026-09-04 (session 4)'; echo '- turn: 1 · provoked: connection · targeted: governance-law'
+  } > "$TMP/rvreset.md"
+  gap=$(python3 -c "import sys; sys.path.insert(0,'$B/tests'); import reviewcheck as r; print(r.sessions_since_review(open(sys.argv[1]).read()))" "$TMP/rvreset.md")
+  [ "${gap:-x}" = 3 ] && ok "selftest: the counter resets on a compound marker (3 sessions since, not 4)" \
+    || no "selftest: compound marker did not reset the review counter (gap=$gap, want 3)"
+
+  # The marker must be a machine line, not a sentence about markers. A transcript that quotes the rubric
+  # ("count the sessions after the last line carrying `provoked: review`") used to satisfy the test by
+  # saying the words; the field separator is what distinguishes recording from mentioning.
+  { echo "# T"; echo "## transcript"; echo '## 2026-09-01 (session 1)'; echo '- turn: 1 · provoked: cost · targeted: trade-currency'
+    echo '## 2026-09-02 (session 2)'; echo '- turn: 1 · provoked: consequence · targeted: geography'
+    echo '## 2026-09-03 (session 3)'; echo '- turn: 1 · provoked: connection · targeted: power-systems'
+    echo '## 2026-09-04 (session 4)'
+    echo 'Per the rubric, count sessions after the last line carrying `provoked: review`.'
+  } > "$TMP/rvquote.md"
+  gap=$(python3 -c "import sys; sys.path.insert(0,'$B/tests'); import reviewcheck as r; print(r.sessions_since_review(open(sys.argv[1]).read()))" "$TMP/rvquote.md")
+  [ "${gap:-x}" = 4 ] && ok "selftest: guidance quoted in a turn does not reset the review counter (gap=4)" \
+    || no "selftest: a sentence mentioning the marker reset it (gap=$gap, want 4) - mentioning equals doing"
+  { echo "# T"; echo "## transcript"; echo '## 2026-09-01 (session 1)'
+    echo '- provoked: consequence, review · targeted: trade-currency'
+    echo '## 2026-09-02 (session 2)'; echo '- turn: 1 · provoked: cost · targeted: geography'
+  } > "$TMP/rvold.md"
+  gap=$(python3 -c "import sys; sys.path.insert(0,'$B/tests'); import reviewcheck as r; print(r.sessions_since_review(open(sys.argv[1]).read()))" "$TMP/rvold.md")
+  [ "${gap:-x}" = 1 ] && ok "selftest: the older '- provoked: x, review ·' shape still counts as a review (gap=1)" \
+    || no "selftest: pre-R-9 machine-line shape not recognised as a review (gap=$gap, want 1)"
   rm -rf "$TMP"
 }
 fixture(){
