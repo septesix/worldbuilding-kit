@@ -321,6 +321,34 @@ multi(){
   done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
     || no "multi-turn invariant breached (bitmask $rc: 1 words/beats, 2 appendix/scoring, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
+  # The table is derived data, so it has to stay derived. Static path skips this: it costs about a
+  # minute over the whole corpus, and the fast lane's speed is why anyone runs it before committing.
+  if [ -f "$REPO/tools/tunable_provenance.py" ] && [ -f "$REPO/docs/tunables.md" ]; then
+    python3 - "$REPO" <<'PYPROV'
+import subprocess, sys, os, json
+repo = sys.argv[1]
+r = subprocess.run([sys.executable, os.path.join(repo, 'tools', 'tunable_provenance.py'), '--json'],
+                   capture_output=True, text=True, cwd=repo)
+try:
+    rep = json.loads(r.stdout)
+except Exception:
+    print('  FAIL provenance drift check: the tool produced no JSON - ' + r.stderr.strip()[:70])
+    sys.exit(0)
+doc = open(os.path.join(repo, 'docs', 'tunables.md')).read()
+want = []
+n = rep['words_per_turn']['multi/skill']['dist']['n']
+want.append(('multi/skill n=%d' % n, ('multi/skill n=%d' % n) in doc))
+b = rep['_markers']['beats_over']['multi']
+tag = '%d of %d runs' % (b['runs_with_it'], b['runs'])
+want.append(('beats_over ' + tag, tag in doc))
+bad = [w for w, okk in want if not okk]
+if bad:
+    print('  FAIL docs/tunables.md drifted from the corpus: ' + '; '.join(bad)
+          + ' - regenerate with tools/tunable_provenance.py')
+else:
+    print('  ok   docs/tunables.md still matches a live run of the provenance tool')
+PYPROV
+  fi
 }
 
 behavior(){

@@ -1,5 +1,9 @@
 # Where every number in the skill came from
 
+The `multi` path of the static suite re-derives two of these figures against a live run of the
+tool, so a corpus that grows without the table being regenerated fails the suite rather than quietly
+aging. Not in the fast (static-only) path: it costs about a minute over 62 records.
+
 Regenerate the measurements with `python3 tools/tunable_provenance.py` (62 run records, 21 guidance keys,
 2 empty turns excluded as infrastructure). Numbers below are as of 2026-10-15, guidance key `5e29a642`.
 
