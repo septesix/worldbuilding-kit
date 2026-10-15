@@ -24,12 +24,12 @@ nearest wins; name the path.
   entity files from `assets/*-template.md`, all `proposed:`.
 - **`continue`**, `world/` exists — read `index.md`; if missing or stale, rebuild and say so. ≤ `reads_per_turn` bodies, else you score from files. At ≥3 sessions since
   the last machine line names `review`, end the turn with the memo.
-- **`review`** — asked, or as `continue` says: the five-item memo (`rubric.md`).
+- **`review`** — asked, or as `continue` says: the five-item memo.
 
 ## The turn
 
-- **write back** · **reflect** — after an answer, before asking again: append canon, update the three files, name a consequence the writer didn't say. Beats stay inside `beat_budget`.
-- **digest** — ≤3 lines: world, path, thin and empty pillars, open threads, since last session.
+- **write back** · **reflect** — after an answer, before asking again: append canon, update the three files, name a consequence they didn't say. Beats stay inside `beat_budget`; longer than last turn? cut a beat.
+- **digest** — ≤3 lines: world, path, thin/empty pillars, open threads, since last session.
 - **target** — the hole scoring chose, naming an entity.
 - **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
 - **stop** — wait.
@@ -50,8 +50,7 @@ Never the same pillar twice running when another scores
 
 - Repeating established canon: no re-ask, no duplicate. If it differs, run the Contradiction beat —
   name both lines, resolve, append a `revised:` line quoting the superseded text; never annotate it.
-- Over half the last 8 turns wrote `proposed:` → stop interviewing; sketch 6 lines, ask what is wrong
-  with them.
+- Over half the last 8 turns wrote `proposed:` → stop interviewing; sketch 6 lines, ask what's wrong.
 
 ## Bookkeeping
 

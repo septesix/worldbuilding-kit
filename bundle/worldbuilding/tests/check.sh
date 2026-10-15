@@ -161,6 +161,18 @@ method(){
   has "cadence is computed from logged targets, not felt (R-8)" "$B/references/rubric.md" 'last .texture_cadence. entries|arithmetic on .log\.md.'
   has "body routes cadence to the log (R-8)" "$S" 'last .texture_cadence. .targeted:|targeted:. lines in .log.md'
   has "bookkeeping demands one machine line per turn (R-9)" "$S" 'one machine line per turn'
+  # G2: the length cap fails by drift, not by disobedience - measured turns climb 142 to 200 words by
+  # turn index in both arms. So the fix is a comparison the model can act on where it is already writing,
+  # and the instruction to cut has to survive in every file that states a budget: if it lives only in
+  # SKILL.md a trim moves it out of sight, and if SKILL.md loses the hook the cap goes back to being a
+  # number nobody looks at until the turn is already long.
+  cut=$(grep -rl 'cut the longest beat\|cut a beat' "$S" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  hook=$(grep -rl 'longer than last turn\|longer than your last' "$S" "$B/references" 2>/dev/null | wc -l)
+  if [ "$cut" -ge 3 ] && [ "$hook" -ge 2 ]; then
+    ok "the turn-length drift rule is stated where it is used ($cut files carry the cut, $hook the comparison)"
+  else
+    no "drift rule half-missing: cut instruction in $cut files (want >=3), comparison in $hook (want >=2)"
+  fi
   # pattern must not start with '-' or grep reads it as an option (it did, and looked like a missing rule)
   has "template gives the machine line shape (R-9)" "$B/assets/index-template.md" 'turn: <n> .*provoked'
   # G1: the provoked field used to be documented in three shapes at once - a singular `<type>`, an
@@ -203,6 +215,11 @@ multi(){
   [ -z "$all" ] && { echo "  skip  multi: no multi-turn runs recorded"; return; }
   sel=$(grep -l "guidance=$bh" $all 2>/dev/null | head -4)
   [ -z "$sel" ] && { echo "  skip  multi: no multi-turn evidence from guidance key $bh"; return; }
+  # the denominator, because a bitmask computed over one file reads like a bitmask over the corpus:
+  # a guidance edit moves the key, the older artifacts stop being selected, and the number improves on
+  # its own. behaviour changed, or the sample did - say which before anyone draws a conclusion.
+  echo "  note  multi: grading $(printf '%s\n' $sel | wc -l) of $(printf '%s\n' $all | grep -c .) multi-turn artifacts" \
+       "at key $bh; the rest were runs against other guidance"
   local rc=0 f
   for f in $sel; do
     grep -q '^CANON-LOSS' "$f" && { echo "   canon files deleted during $(basename "$f") - append-only breached (world/ files may be added, never removed)"; rc=$((rc | 1)); }

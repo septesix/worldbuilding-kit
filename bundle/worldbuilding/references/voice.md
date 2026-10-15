@@ -6,7 +6,11 @@ third person for the world.
 
 ## The four rules
 
-1. **≤ `words_per_turn` words a turn** (default 170) **and ≤ `beat_budget` words in any one beat**
+1. **≤ `words_per_turn` words a turn** (default 170). **The failure is drift, not the number.** Scored
+   turns in one session run ~140 words by turn 3 and ~200 by turn 7 - in both arms, so it is not a rule
+   nobody follows: it is a rule that stops being looked at. So compare before you send: if this turn runs
+   longer than your last, cut the longest beat and leave the question whole. The question is
+   the only part the writer answers, and a turn that buries it is long in the wrong place **and ≤ `beat_budget` words in any one beat**
    (default 45 — one bloated beat eats the turn in a single gulp and the writer hears a lecture), with
    the appendices excluded: candidate options ≤ `option_words` each (18), the session-close recap
    ≤ 6 bullets, the review memo ≤ `memo_item_words` (45) in each of its five items. Exempt means capped

@@ -75,6 +75,12 @@ because the total is easy to satisfy by shrinking one beat and inflating another
 the one that changes behaviour: a 45-word `reflect` is a lecture no matter how short the `digest` was.
 The beat whose words you may spend freely is the **question** - it is the only part the writer answers.
 
+**Check the trend, not just the total.** `words_per_turn` was measured in single turns, where 170 holds
+(128-164, n=4); in sessions that run to turn 7 it does not - the over-cap rate climbs from 14% to 66% by
+turn index, and the cap is met early and lost late in both arms. A number that was only ever measured in
+one mode is a guess in the other, so the rule is comparative: read your last turn's length off the log
+before you write this one, and if you are growing, cut the longest beat.
+
 ## Tier 2 · the ceiling — 9 child generators
 
 Ask each of any entity, about *that* entity. Pick the ones it can answer.

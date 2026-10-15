@@ -36,7 +36,7 @@ Then start pi in a writing project and ask it to build a world. It installs the 
 
 ## Development
 
-    bash bundle/worldbuilding/tests/check.sh all        # 185 static assertions, incl. self-tests of the gates
+    bash bundle/worldbuilding/tests/check.sh all        # 186 static assertions, incl. self-tests of the gates
     bash bundle/worldbuilding/tests/check.sh behavior   # grade recorded runs at THIS guidance hash only
     bash bundle/worldbuilding/tests/multi               # 12-turn runs against one persistent world
 
@@ -67,7 +67,7 @@ recorded skill-arm transcripts carry the guidance key being graded, and the rest
 than counted. Two states are never merged into a pass: a run whose model never spoke (there was one in
 the 2026-10-13 batch, turn 9 of a 12-turn `close`) is excluded as infrastructure, and a run that
 breached is reported as a breach. As of that batch, 7 of 42 apply to the current key and 5 of those 7
-carry a verdict - so the static suite is 185 green assertions about text, and behaviour is graded on a
+carry a verdict - so the static suite is 186 green assertions about text, and behaviour is graded on a
 handful of runs, which is the honest shape of this evidence and not a problem to be phrased away.
 
 ## Licence and ownership of your writing
