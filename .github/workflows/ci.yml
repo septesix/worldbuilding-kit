@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   static:
-    name: static suite (194 assertions)
+    name: static suite (197 assertions)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:

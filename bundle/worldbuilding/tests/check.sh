@@ -83,6 +83,24 @@ templates(){
     [ "$n" -ge 3 ] || { missing=1; no "tunable $t appears in only $n places - a rule with no home"; }
   done
   [ $missing = 0 ] && ok "every tunable is named in template, fixture and guidance"
+  # Every number the skill enforces needs a stated origin, or it is a taste with a decimal point on it.
+  # docs/tunables.md is generated from the corpus by tools/tunable_provenance.py; this checks coverage -
+  # that each enforced name has a row, and that a row with no evidence admits it in words.
+  local prov="$REPO/docs/tunables.md" pt pmiss=0 bare
+  if [ -f "$prov" ]; then
+    for pt in words_per_turn texture_cadence reads_per_turn beat_budget turns_per_session memo_item_words option_words lopsidedness_floor gap_weight; do
+      grep -q "\`$pt" "$prov" || { pmiss=1; no "enforced tunable $pt has no provenance row"; }
+    done
+    [ $pmiss = 0 ] && ok "every enforced tunable has a provenance row in docs/tunables.md"
+    { grep -q "absent from its sample" "$prov" && grep -q "tools/tunable_provenance.py" "$prov"; } \
+      && ok "the table states the mode rule and names the command that regenerates it" \
+      || no "the table lost its mode rule or its regeneration command - the numbers become folklore"
+    bare=$(awk -F'|' '/^\| `/{if ($5 !~ /n=|not measured|no run varies|never emitted|n=1/) print $2}' "$prov")
+    [ -z "$bare" ] && ok "no tunable row reports neither a sample nor an explicit absence" \
+      || no "tunable row(s) with an empty measured column: $bare"
+  else
+    no "docs/tunables.md missing - tunables would be enforced with no recorded origin"
+  fi
   local ln; ln=$(awk '/^## Entities/{print NR; exit}' "$T/index-template.md"); [ "$ln" -lt 60 ] && ok "entity table at line $ln (<60)" || no "entity table at line $ln, not <60"
   grep -q '^## Canon' "$T/entity-template.md" && ok "entity template has Canon" || no "entity template lacks ## Canon"
   grep -q 'proposed:' "$T/entity-template.md" && ok "entity template shows provenance" || no "no proposed: provenance"
