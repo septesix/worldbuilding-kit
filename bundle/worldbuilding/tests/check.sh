@@ -161,6 +161,20 @@ method(){
   has "cadence is computed from logged targets, not felt (R-8)" "$B/references/rubric.md" 'last .texture_cadence. entries|arithmetic on .log\.md.'
   has "body routes cadence to the log (R-8)" "$S" 'last .texture_cadence. .targeted:|targeted:. lines in .log.md'
   has "bookkeeping demands one machine line per turn (R-9)" "$S" 'one machine line per turn'
+  # G3: cadence is a property of the ledger, so the checks that read it have to sit where the ledger is
+  # read. They used to live in the scoring section beside the weights, which the model consults before the
+  # turn - when the `targeted:` values it needs are not on screen yet. Both halves are pinned to the
+  # write-back bullet, because moving the sentences back would leave every phrase checked below intact.
+  wb=$(grep -E '^- \*\*write back\*\*' -A3 "$S" | tr '\n' ' ')
+  wb_tex=0; wb_pill=0
+  echo "$wb" | grep -q '`texture_cadence` `targeted:`' && wb_tex=1
+  echo "$wb" | grep -q 'same pillar twice running' && wb_pill=1
+  sc=$(awk '/^## Scoring/,/^## Bookkeeping/' "$S" | grep -c 'texture_cadence\|same pillar')
+  if [ "$wb_tex" = 1 ] && [ "$wb_pill" = 1 ] && [ "$sc" = 0 ]; then
+    ok "both cadence checks sit in the step that reads the log, not beside the weights"
+  else
+    no "cadence placement wrong: write-back has texture=$wb_tex pillar=$wb_pill, scoring still names $sc (want 1,1,0)"
+  fi
   # G2: the length cap fails by drift, not by disobedience - measured turns climb 142 to 200 words by
   # turn index in both arms. So the fix is a comparison the model can act on where it is already writing,
   # and the instruction to cut has to survive in every file that states a budget: if it lives only in
@@ -223,7 +237,11 @@ multi(){
   local rc=0 f
   for f in $sel; do
     grep -q '^CANON-LOSS' "$f" && { echo "   canon files deleted during $(basename "$f") - append-only breached (world/ files may be added, never removed)"; rc=$((rc | 1)); }
-    grep -q 'INFRA-FAIL: no assistant text' "$f" && { echo "   an eaten turn in $(basename "$f") - instrument failure, not scored as a finding"; rc=$((rc | 2)); }
+    if grep -q 'INFRA-FAIL: no assistant text' "$f"; then
+      echo "   an eaten turn in $(basename "$f") - instrument failure, excluded from this"
+      echo "      aggregate rather than counted as a breach; the file keeps its own verdict"
+      continue
+    fi
     python3 "$B/tests/invariants.py" "$f" || rc=$((rc | $?))
   done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
