@@ -70,7 +70,14 @@ than the hole it was filling, because the hole was honest about being unknown.
 
 Close at `turns_per_session` turns (default 12), or earlier on the writer's cue to wrap up. The count
 comes from the machine lines in `log.md`, so a session that stopped writing them cannot know it has
-reached the limit. Then: 3-6 recap bullets of what was decided, the next thread named with the reason
+reached the limit. Then: 3-6 recap bullets of what was decided, **citation first** - each opens with the
+`file` or `T-num` it records, then one clause saying what changed:
+
+    - `bridge-tolls`, `T-014` — the Council did not build the lock; the ledger predates it
+
+Citation first is not house style. The recap is an appendix: it does not count against `words_per_turn`,
+and a bullet whose source sits at the end of a 40-word sentence cannot be told apart from turn prose by
+the reader, or by the counter that grants the exemption. The next thread named with the reason
 to pull it, `status: active` in `world/index.md`, and the last turn's `stop` beat unanswered.
 
 ## Word budget: why the beats, not the turn

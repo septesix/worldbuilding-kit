@@ -161,6 +161,50 @@ method(){
   has "cadence is computed from logged targets, not felt (R-8)" "$B/references/rubric.md" 'last .texture_cadence. entries|arithmetic on .log\.md.'
   has "body routes cadence to the log (R-8)" "$S" 'last .texture_cadence. .targeted:|targeted:. lines in .log.md'
   has "bookkeeping demands one machine line per turn (R-9)" "$S" 'one machine line per turn'
+  # G4: the close recap is an appendix that does not count against `words_per_turn` - which is only true
+  # if a recap bullet is identifiable. Guidance said "3-6 recap bullets" and never their shape, so runs
+  # wrote citations at the end of long sentences and every close turn was graded as prose (175 and 256
+  # words, on runs whose recap was exempt by design). The shape is now stated in three places, and the
+  # assertion below is the one that matters: it feeds the documented shape to the counter and requires
+  # the counter to see an appendix. Guidance and instrument agreeing is not assumed anywhere.
+  cite=$(grep -rl 'citation first' "$S" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  if [ "$cite" -ge 3 ]; then ok "the close recap has one stated shape ($cite files say citation first)"
+  else no "recap shape thin: 'citation first' in $cite files (want >=3)"; fi
+  # a path of its own: $TMP belongs to selftest() and is not set in this function, which is how the
+  # first draft of this assertion killed the whole run on an unbound variable
+  rcf=$(mktemp)
+  { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
+    echo 'One short question about the lock.'
+    for i in 1 2 3 4 5 6; do
+      printf -- '- `bridge-tolls-%d`, `T-014` — the Council did not build the lock and the ledger predates it by forty years of tide tables and quiet forgery\n' "$i"
+    done
+    echo; echo '## files after run'; } > "$rcf"
+  out=$(python3 "$B/tests/wordcount.py" "$rcf" 170 2>&1); rm -f "$rcf"
+  seen=$(echo "$out" | grep -oE '[0-9]+ recap bullets' | grep -oE '[0-9]+' | head -1)
+  counted=$(echo "$out" | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+' | head -1)
+  if [ "${seen:-0}" = 6 ] && [ "${counted:-999}" -lt 40 ]; then
+    ok "the documented recap shape reads as an appendix (6 bullets seen, $counted turn words counted)"
+  else
+    no "recap exemption unverifiable: bullets recognised=${seen:-0}/6, turn words counted=${counted:-?} (want 6 and <40)"
+  fi
+  # The other side, which is the defect that motivated the rule: the same six bullets with the citation
+  # at the end - what real close runs wrote before G4 - must NOT read as an appendix. If both shapes are
+  # recognised, the assertion above is measuring nothing.
+  rct=$(mktemp)
+  { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
+    echo 'One short question about the lock.'
+    for i in 1 2 3 4 5 6; do
+      printf -- '- The Council did not build the lock and the ledger predates it by forty years of tide tables (`bridge-tolls-%d`, `T-014`)\n' "$i"
+    done
+    echo; echo '## files after run'; } > "$rct"
+  out2=$(python3 "$B/tests/wordcount.py" "$rct" 170 2>&1); rm -f "$rct"
+  seen2=$(echo "$out2" | grep -oE '[0-9]+ recap bullets' | grep -oE '^[0-9]+' | head -1)
+  cnt2=$(echo "$out2" | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+' | head -1)
+  if [ "${seen2:-0}" = 0 ] && [ "${cnt2:-0}" -gt 60 ]; then
+    ok "the trailing-citation shape is still turn prose (${cnt2}w counted, 0 bullets exempt) - the gap G4 closed"
+  else
+    no "shape no longer distinguishes them: exempt=${seen2:-0} bullets, ${cnt2:-?}w counted (want 0 and >60)"
+  fi
   # G6: the ledger is the only record of what was asked, and it is append-only, so a line written for a
   # turn that never happened is permanent and load-bearing - every window rule reads it. The fixture's
   # world has four sessions and zero machine lines, and a resumed run filled the hole with eight lines
@@ -1117,6 +1161,31 @@ L
   gap=$(python3 -c "import sys; sys.path.insert(0,'$B/tests'); import reviewcheck as r; print(r.sessions_since_review(open(sys.argv[1]).read()))" "$TMP/rvold.md")
   [ "${gap:-x}" = 1 ] && ok "selftest: the older '- provoked: x, review ·' shape still counts as a review (gap=1)" \
     || no "selftest: pre-R-9 machine-line shape not recognised as a review (gap=$gap, want 1)"
+  # Act versus mention, on the two real transcripts that define the difference. In one the model read
+  # this detector's own source and quoted the example in its docstring; in the other a file genuinely
+  # disappeared, which the count witness catches. The text witness must not do the first one's job.
+  actlog=""
+  for ext in jsonl jsonl.gz; do
+    [ -f "$REPO/evidence/close-skill-multi-20261015T042652Z.md.session.$ext" ] && actlog="$REPO/evidence/close-skill-multi-20261015T042652Z.md.session.$ext"
+  done
+  if [ -n "$actlog" ]; then
+    python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" \
+      --transcript "$actlog" >"$rv/act.out" 2>&1; r=$?
+    { [ "$r" = 0 ] && grep -q 'CANON-NOTE' "$rv/act.out" && ! grep -q '^CANON-LOSS' "$rv/act.out"; } \
+      && ok "selftest: a deletion only quoted in prose is a note, not a verdict (rc=0)" \
+      || no "selftest: prose mention still reads as CANON-LOSS (rc=$r) - the witness cannot tell acting from writing"
+    n=$(python3 -c "import sys; sys.path.insert(0,'$B/tests'); import canoncheck as cc, gzip; p=sys.argv[1]
+print(len(cc.tool_commands((gzip.open(p,'rt') if p.endswith('.gz') else open(p)).read())))" "$actlog")
+    [ "${n:-0}" -gt 0 ] && ok "selftest: the command extractor reads $n commands from a real session log" \
+      || no "selftest: the extractor found 0 commands in a real log - broken, and failing silently"
+  fi
+  # the act path, so the fix cannot have blinded the gate: an executed rm of an entity file must trip it
+  { echo '{"type":"message","message":{"content":[{"type":"toolCall","name":"bash","arguments":{"command":"cd world && rm encyclopedia/tide-lock-artifact.md"}}]}}'; } > "$rv/act.jsonl"
+  python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$rv/act.jsonl" \
+    >"$rv/act2.out" 2>&1; r=$?
+  { [ "$r" = 1 ] && grep -q '^CANON-LOSS' "$rv/act2.out"; } \
+    && ok "selftest: an executed rm of an entity file still trips the witness (rc=1)" \
+    || no "selftest: an executed rm did NOT trip the witness (rc=$r) - act/mention split blinded the gate"
   rm -rf "$TMP"
 }
 fixture(){

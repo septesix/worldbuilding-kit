@@ -93,7 +93,8 @@ RPT=$(awk '/reads_per_turn:/{gsub(/[^0-9]/,"",$2); print $2; exit}' "$BUNDLE/ass
 # which is a verdict citing itself as a fact about the run.
 VDT="$(mktemp)"; CCRC=0
 python3 "$HERE/canoncheck.py" --dir "$WORK" --fixture "$FIX" --seen "$SEEN" --transcript "$SESS" >"$VDT" 2>&1 || CCRC=$?
-[ "$CCRC" = 1 ] && echo "CANON-LOSS: encyclopedia file count went down during the run (canoncheck rc=1)" >>"$VDT"
+# canoncheck's own lines already say WHICH witness fired, and they are in $VDT; this used to assert
+# "file count went down" for any rc=1, which is how a text witness began a sentence about the count
 [ "$CCRC" = 64 ] && echo "NOT-GRADED: canoncheck could not examine the run (rc=64)" >>"$VDT"
 { echo; echo "## harness verdicts"; cat "$VDT"; } >> "$OUT"
 

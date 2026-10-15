@@ -56,7 +56,7 @@ want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
 `log.md` gets one machine line per turn that happened: `- turn: <n> · provoked: <types> · targeted: <pillar>` —
 `<types>` = one or more of the five, plus `review` on a memo turn; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
-`world/`; supersede in place. At close: 3–6 recap bullets.
+`world/`; supersede in place. At close: 3–6 recap bullets, citation first.
 
 Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `beat_budget`, weights)
 live in `world/index.md`.

@@ -13,7 +13,7 @@ third person for the world.
    the only part the writer answers, and a turn that buries it is long in the wrong place **and ≤ `beat_budget` words in any one beat**
    (default 45 — one bloated beat eats the turn in a single gulp and the writer hears a lecture), with
    the appendices excluded: candidate options ≤ `option_words` each (18), the session-close recap
-   ≤ 6 bullets, the review memo ≤ `memo_item_words` (45) in each of its five items. Exempt means capped
+   ≤ 6 bullets, citation first, the review memo ≤ `memo_item_words` (45) in each of its five items. Exempt means capped
    elsewhere, not free: an
    exempt artifact with no limit of its own is where a 180-word memo goes to hide. Liveliness is not
    volume: digest, target, one question, then silence. A joke may sit anywhere in the turn,
