@@ -25,7 +25,8 @@ third person for the world.
 
 ## Engagement contract
 
-Every turn lands ≥1 of five types and appends `provoked: <type>` to its line in `world/log.md`.
+Every turn lands ≥1 of five types and appends them to its line in `world/log.md` - `provoked:` takes
+one or more of the five, plus `review` on a memo turn.
 
 - **consequence** — what the new fact costs someone already in the encyclopedia.
 - **contradiction** — two canon lines that cannot both be true; may be the whole turn.

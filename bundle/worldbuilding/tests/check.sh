@@ -59,10 +59,10 @@ templates(){
   has "a new-world scenario exists" "$B/tests/prompts/new-world.txt" 'canal city'
   has "the new-world scenario is wired into the harness" "$B/tests/run.sh" 'new-world'
   has "seedcheck wired into the single-turn harness" "$B/tests/run.sh" 'seedcheck'
-  has "review trigger named in SKILL (I5)" "$B/SKILL.md" 'provoked: review'
+  has "review trigger named in SKILL (I5)" "$B/SKILL.md" 'names `review`'
   has "the memo is named in SKILL (I5)" "$B/SKILL.md" 'the memo'
   has "review trigger lives in the continue procedure (I5)" "$B/SKILL.md" 'score from files. At ≥3 sessions'
-  has "the trigger names the count it checks (I5)" "$B/SKILL.md" 'provoked: review., end the turn with the memo'
+  has "the trigger names the count it checks (I5)" "$B/SKILL.md" 'names .review., end the turn with the memo'
   has "the five memo items are enumerated in the rubric (I5)" "$B/references/rubric.md" 'treadmill'
   has "review contract computed in the rubric (I5)" "$B/references/rubric.md" '## Review mode'
   has "reviewcheck wired into the harness" "$B/tests/run.sh" 'reviewcheck'
@@ -163,6 +163,18 @@ method(){
   has "bookkeeping demands one machine line per turn (R-9)" "$S" 'one machine line per turn'
   # pattern must not start with '-' or grep reads it as an option (it did, and looked like a missing rule)
   has "template gives the machine line shape (R-9)" "$B/assets/index-template.md" 'turn: <n> .*provoked'
+  # G1: the provoked field used to be documented in three shapes at once - a singular `<type>`, an
+  # eight-name enum that listed `review` as a type, and the literal `provoked: review`. Real runs had
+  # picked two of them (12 singular, 3 list), so a logged review could read as one that never happened.
+  # Both halves bite: revert a file to the singular and `stale` moves; trim the shared phrase out of two
+  # files and `agree` does.
+  stale=$(grep -rlE 'provoked: <type> ·|one of the eight types' "$S" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  agree=$(grep -rl 'one or more of the five' "$S" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  if [ "$stale" = 0 ] && [ "$agree" -ge 4 ]; then
+    ok "the provoked field has one shape, named in $agree shipped files"
+  else
+    no "the provoked field is described in $agree files with $stale stale shape(s) left (want >=4 and 0)"
+  fi
   has "rubric treats a ledger hole as unknown, not satisfied (R-9)" "$B/references/rubric.md" 'hole in the log'
   has "index-template carries the reads tunable" "$B/assets/index-template.md" 'reads_per_turn: [0-9]+'
   has "fixture carries the reads tunable" "$B/tests/fixtures/established/world/index.md" 'reads_per_turn: [0-9]+'

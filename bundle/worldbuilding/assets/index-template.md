@@ -61,7 +61,7 @@ bullets in those files, excluding any carrying `supersedes`; `proposed` = `- pro
 
 ## Log line shape (per turn, appended)
 
-- turn: <n> · provoked: <connection|constraint|cost|consequence|discovery|contradiction|stake|review> · targeted: <pillar>
+- turn: <n> · provoked: <one or more of the five engagement types, plus review on a memo turn> · targeted: <pillar>
 - decided: <what the writer settled>
 
 Exactly one machine line per turn, in order - including the close turn, whose line goes down before

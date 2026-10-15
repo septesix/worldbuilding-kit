@@ -105,11 +105,12 @@ Worked example — `severins-child-place`, named by the writer mid-turn:
 
 ## Review mode (I5)
 
-**When.** Count the `## <date> (session N)` headers in `log.md` after the last line carrying
-`provoked: review`. If that count is >= 3, a review is owed and you offer it at the end of the turn -
-after the question, never instead of it. `provoked: review` is already one of the eight types, so the
-trigger needs no new state: a session that never writes the machine line will never be asked to review,
-which is R-9's argument repeated.
+**When.** Count the `## <date> (session N)` headers in `log.md` after the last machine line whose
+`provoked:` list names `review`. If that count is >= 3, a review is owed and you offer it at the end of
+the turn - after the question, never instead of it. `review` is a flag on one or more of the five
+engagement types, not a sixth one, so a memo turn still names what provoked it. The trigger needs no new
+state, and a session that never writes the machine line will never be asked to review, which is R-9's
+argument repeated.
 
 **The memo** is five items, each a computation over `world/`, printed as five short bullets, chat not
 file. Anything the computation cannot answer is said as unknown, never omitted in silence:
@@ -133,7 +134,8 @@ bullet in them runs 60 words inside a 147-word memo that looks shorter than a cl
 exempt artifact with no ceiling of its own is only a hiding place. Five items, one line each, citations
 over prose.
 
-**Log the review you gave.** The memo turn's machine line carries `provoked: review`. Without it the
+**Log the review you gave.** The memo turn's machine line names `review` in its `provoked:` list, which
+is how the count resets. Without it the
 count never resets and the next session reviews again - the trigger is arithmetic, so it obeys the
 ledger and nothing else, least of all your memory of having just done this.
 
