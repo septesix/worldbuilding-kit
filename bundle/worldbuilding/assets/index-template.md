@@ -64,7 +64,7 @@ bullets in those files, excluding any carrying `supersedes`; `proposed` = `- pro
 - turn: <n> · provoked: <one or more of the five engagement types, plus review on a memo turn> · targeted: <pillar>
 - decided: <what the writer settled>
 
-Exactly one machine line per turn, in order - including the close turn, whose line goes down before
+Exactly one machine line per turn that happened, in order - including the close turn, whose line goes down before
 its recap bullets. Prose lines are for the writer; the machine line is for
 the next turn, which cannot remember otherwise.
 

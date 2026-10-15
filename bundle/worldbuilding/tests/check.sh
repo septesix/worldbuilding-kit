@@ -161,6 +161,19 @@ method(){
   has "cadence is computed from logged targets, not felt (R-8)" "$B/references/rubric.md" 'last .texture_cadence. entries|arithmetic on .log\.md.'
   has "body routes cadence to the log (R-8)" "$S" 'last .texture_cadence. .targeted:|targeted:. lines in .log.md'
   has "bookkeeping demands one machine line per turn (R-9)" "$S" 'one machine line per turn'
+  # G6: the ledger is the only record of what was asked, and it is append-only, so a line written for a
+  # turn that never happened is permanent and load-bearing - every window rule reads it. The fixture's
+  # world has four sessions and zero machine lines, and a resumed run filled the hole with eight lines
+  # numbered 5-12 rather than saying the history was missing. Nothing forbade that. The prohibition is
+  # pinned in the three places a model meets the ledger - the rule, the reasoning, and the template that
+  # creates the file - because a rule stated once, in a file that may not be open, is a suggestion.
+  said=$(grep -rl 'per turn that happened' "$S" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  forbids=$(grep -rl 'turns you did not write' "$S" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  if [ "$said" -ge 3 ] && [ "$forbids" -ge 1 ]; then
+    ok "machine lines are limited to turns that happened ($said files, prohibition in $forbids)"
+  else
+    no "ledger-fidelity rule thin: 'per turn that happened' in $said files (want >=3), prohibition in $forbids (want >=1)"
+  fi
   # G3: cadence is a property of the ledger, so the checks that read it have to sit where the ledger is
   # read. They used to live in the scoring section beside the weights, which the model consults before the
   # turn - when the `targeted:` values it needs are not on screen yet. Both halves are pinned to the

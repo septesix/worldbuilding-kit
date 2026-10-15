@@ -61,6 +61,11 @@ Bookkeeping only; the score that uses these counts lives in `../SKILL.md`.
   window cannot be computed. Do not conclude texture is satisfied: ask the texture question this turn
   and say, in one clause, that the ledger lost track.
 
+**A hole is not yours to fill.** The line above is about reading a gap; this is about writing over one.
+One line per turn that happened, none for turns you did not write. An invented line is permanent in an
+append-only file, and every window rule above then reads a history that never occurred - which is worse
+than the hole it was filling, because the hole was honest about being unknown.
+
 ## Closing the session
 
 Close at `turns_per_session` turns (default 12), or earlier on the writer's cue to wrap up. The count

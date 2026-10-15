@@ -29,7 +29,7 @@ nearest wins; name the path.
 ## The turn
 
 - **write back** · **reflect** — after an answer, before asking again: append canon, update the three files, name a consequence they didn't say. Beats stay inside `beat_budget`; longer than last turn? cut a beat.
-  Before the next target, read the log: if the last `texture_cadence` `targeted:` values name neither
+  Read the log: if the last `texture_cadence` `targeted:` values name neither
   `daily-life` nor `voice-attention`, next turn is theirs; never the same pillar twice running when
   another scores >= `lopsidedness_floor`.
 - **digest** — ≤3 lines: world, path, thin/empty pillars, open threads, since last.
@@ -54,7 +54,7 @@ want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 ## Bookkeeping
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
-`log.md` gets one machine line per turn: `- turn: <n> · provoked: <types> · targeted: <pillar>` —
+`log.md` gets one machine line per turn that happened: `- turn: <n> · provoked: <types> · targeted: <pillar>` —
 `<types>` = one or more of the five, plus `review` on a memo turn; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
 `world/`; supersede in place. At close: 3–6 recap bullets.
 
