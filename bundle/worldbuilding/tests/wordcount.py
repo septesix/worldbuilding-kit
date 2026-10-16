@@ -83,16 +83,30 @@ def measure(path):
         return None
     bodies = [re.sub(r'## pi exit status.*', '', b, flags=re.S) for b in bodies]
     worst = None; graded = skipped = 0
-    for b in bodies:
+    for bi, b in enumerate(bodies):
         memo, lines = memo_split(b.split('\n'))
         memo = [l for l in memo if not OPT.match(l)]
         turn, opts, recap = [], [], []
-        for l in lines:
-            # `writer:` is the harness echoing the scripted turn, not the model's prose. Counting it
-            # inflated multi-turn runs by ~9 words and made the two gates disagree about one number.
-            if l.startswith('writer:'):
+        last_turn = (bi == len(bodies) - 1)
+        for li, l in enumerate(lines):
+            # The harness echoes the scripted turn as the first line under `## turn N`. That echo, and
+            # only that echo, is excluded. Skipping any line that merely starts `writer:` is a
+            # free-words channel: an assistant line could opt out of the cap by prefixing it.
+            if hm.is_writer_echo(lines, li):
                 continue
-            (opts if OPT.match(l) else recap if (RECAP.match(l) or CLOSE.match(l)) else turn).append(l)
+            # An appendix bullet is exempt by ROLE, not by the shape of its first token. A bullet that
+            # leads with a slug counts as a recap only once the turn has announced the session close;
+            # before that it is prose. Reaction mode writes six such lines mid-session, and those lines
+            # ARE the beat. Audited 2026-10-16: 162w counted against 291w for the same words in prose
+            # order, in a certified artifact (evidence/cadence-skill-multi-20261015T035948Z.md turn 5).
+            if OPT.match(l):
+                opts.append(l)
+            elif CLOSE.match(l):
+                recap.append(l)
+            elif RECAP.match(l) and hm.close_context(lines, li, last_turn, len(bodies)):
+                recap.append(l)
+            else:
+                turn.append(l)
         w = len(' '.join(turn).split())
         if w <= 10 and not opts and not recap and not memo:
             skipped += 1

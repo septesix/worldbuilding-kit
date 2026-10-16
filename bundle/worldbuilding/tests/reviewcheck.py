@@ -63,8 +63,11 @@ SESSION = re.compile(r'^##\s+\d{4}-\d\d-\d\d.*session', re.M)
 
 
 def sessions_since_review(text):
+    # same shared test as review_marker_lines(): two copies of the predicate is how one gets patched
+    # while the other keeps counting the guide text as a delivered review
     lines = text.split('\n')
-    last = max((i for i, l in enumerate(lines) if '\u00b7' in l and PROVOKED_FIELD.search(l)), default=-1)
+    last = max((i for i, l in enumerate(lines) if hm.is_machine_line(l) and PROVOKED_FIELD.search(l)),
+               default=-1)
     return len(SESSION.findall("\n".join(lines[last + 1:])))
 
 

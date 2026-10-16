@@ -580,7 +580,9 @@ bullets took the documented shape and the close turn counted 125 words with 6 ex
 `words_per_turn: 170` in particular came from four single-turn runs and was then applied to sessions of
 twelve. `tools/tunable_provenance.py` re-runs the graders over the whole corpus, judging each run by the
 caps recorded in its own dump. What it says: single/skill n=30, median 125, **20% over** (so "single turns
-hold the cap" was n=4 folklore); multi/skill n=119, median 158, **41% over**; `beat_budget` breached in
+hold the cap" was n=4 folklore); multi/skill n=119, median 158, **41% over** (both figures superseded by R-24: read through an instrument
+that exempted reaction-mode bullets, the same corpus is n=121, median 173, **58% over** — no behaviour
+changed, the counter started seeing the words); `beat_budget` breached in
 **18 of 19** multi-run records (observed beats 47–74) - the most-breached, least-examined number here;
 `reads_per_turn` median **0** reads per turn, so that budget documents a worry rather than a behaviour;
 the scan weights and `lopsidedness_floor` remain **unmeasured** - no run has varied them. Cells where the
@@ -603,6 +605,29 @@ because `words_per_turn` is the bound on exactly that sum and it is enforced per
 the single-gulp shape, which 60 still catches. Note the two drift guards fired while this was being made
 (spec block and `docs/tunables.md` both still said 45) - which is the only reason they are consistent now.
 
+**R-24 (2026-10-16, independent audit of the graders)** - four instrument defects closed, and the corpus
+became a regression set. The graders had only ever been read by the agent that wrote them, and 14 of 23
+findings logged in this project had been defects in the measuring code. An outside read found four more,
+all of them the same mistake — a rule keyed on what a line *looks like* instead of where it came from:
+the appendix exemption fired for any bullet opening with a slug (so `SKILL.md:52`'s own reaction mode —
+"sketch 6 lines" — was invisible to `words_per_turn`: 162w counted where the same words in prose order
+count 291); any line starting `writer:` was dropped, anywhere in a turn, not just the harness echo;
+`canoncheck`'s act/mention split trusted the argument key `command`, so one ordinary bash call made a
+deletion recorded another way read as "written about, never run"; and `reviewcheck` accepted the
+*documentation* of a machine line as a delivered review, because the guide text contains the same
+separators. Three of the four let a bad run pass; none was covered by any of the 199 assertions.
+
+Two procedural rules come out of it, both now enforced. **Polarity before severity** — a finding states
+whether it can make a bad run PASS or only make a good run FAIL, because that ranking is what the list
+kept getting wrong (a live laundering channel was filed below a shape with zero occurrences in the
+archive). And **a claim must be grepped against the corpus, including for a count of 0** — a `/tmp` pair
+proves a mechanism reachable, never reached. So `tests/golden_verdicts.tsv` records all 213
+(file, grader, exit code) verdicts over `evidence/` and re-derives them on every corpus run, and
+`provsweep` compares the provenance table to its machine-readable twin cell by cell instead of asking
+whether the digits appear somewhere in the file. The fixed graders read **18 of those 213 verdicts
+differently**; the rules themselves are hoisted into `harness_markers.py`, since three of the four
+defects existed in two places at once. See `evidence/GRADER-20261016.md`.
+
 ## Open items (no decision taken)
 
 Verified against the shipped bundle on 2026-10-15; these are spec requirements with no implementation and
@@ -612,6 +637,8 @@ no decision, listed so the next reader does not have to rediscover them:
    absent from all guidance. A writer who declines to choose gets the same premise question.
 2. §3.2 **`sarcasm: on`** is declared in the template and read by nothing; `voice.md`'s sarcasm rule is
    unconditional, so turning it off changes no documented behaviour. The only tunable with no reader.
+   As of R-24 the provenance table says so out loud ("not measured, bound to nothing") rather than
+   leaving the row absent, which is what the new `provsweep` guard would have flagged.
 3. §7 **slug collision** (append the kind: `lady-severin-person`) is stated nowhere; the convention exists
    only because the fixture's files happen to be named that way, so it is a modelling cue, not a rule.
 4. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from

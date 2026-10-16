@@ -269,6 +269,7 @@ method(){
   rcf=$(mktemp)
   { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
     echo 'One short question about the lock.'
+    echo 'Session 1 closed at turn 1 of 12. Written back to `world/`:'
     for i in 1 2 3 4 5 6; do
       printf -- '- `bridge-tolls-%d`, `T-014` — the Council did not build the lock and the ledger predates it by forty years of tide tables and quiet forgery\n' "$i"
     done
@@ -281,6 +282,45 @@ method(){
   else
     no "recap exemption unverifiable: bullets recognised=${seen:-0}/6, turn words counted=${counted:-?} (want 6 and <40)"
   fi
+  # The axis F1 turned up, which the pair above cannot see: the SAME citation-first bullets with no close
+  # announced. That is reaction mode, and it is prose. If these are exempt too, the exemption is still
+  # keyed on shape and the fix is cosmetic.
+  rcg=$(mktemp)
+  { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
+    echo 'Over half the last eight turns wrote proposed, so here are six sketch lines about the lock.'
+    for i in 1 2 3 4 5 6; do
+      printf -- '- `bridge-tolls-%d`, `T-014` — the Council did not build the lock and the ledger predates it by forty years of tide tables and quiet forgery\n' "$i"
+    done
+    echo; echo '## files after run'; } > "$rcg"
+  outg=$(python3 "$B/tests/wordcount.py" "$rcg" 170 2>&1); rm -f "$rcg"
+  seeng=$(echo "$outg" | grep -oE '[0-9]+ recap bullets' | grep -oE '[0-9]+' | head -1)
+  countedg=$(echo "$outg" | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+' | head -1)
+  if [ "${seeng:-0}" = 0 ] && [ "${countedg:-0}" -gt 60 ]; then
+    ok "the same bullets, no close announced, are prose (${countedg}w counted, 0 exempt) - the gap F1 closed"
+  else
+    no "recap exemption is still shape-keyed: ${seeng:-?} exempt, ${countedg:-?}w counted (want 0 exempt and >60)"
+  fi
+  # F2, both sides: the harness echo is excluded because of where it sits, not because of the token it
+  # starts with. Prose that merely begins with that token must still be counted, or the cap is opt-out.
+  f2a=$(mktemp); f2b=$(mktemp)
+  { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
+    echo 'writer: tell me about the toll house'
+    echo 'One short question about the lock, which stands on two rocks.'
+    echo; echo '## files after run'; } > "$f2a"
+  { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
+    echo 'writer: tell me about the toll house'
+    echo 'One short question about the lock, which stands on two rocks.'
+    echo 'writer: and then the whole militia of the lower quarter walked out onto the ice at dawn, which nobody had authorised, and the sexton rang the wrong bell on purpose'
+    echo; echo '## files after run'; } > "$f2b"
+  wa=$(python3 "$B/tests/wordcount.py" "$f2a" 170 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+' | head -1)
+  wb=$(python3 "$B/tests/wordcount.py" "$f2b" 170 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+' | head -1)
+  d=$(( ${wb:-0} - ${wa:-0} ))
+  if [ "${wa:-999}" -le 20 ] && [ "$d" -ge 25 ] && [ "$d" -le 40 ]; then
+    ok "the echo is skipped by position, prose is counted by weight (${wa}w baseline, +${d}w from a 31-word line)"
+  else
+    no "writer: exclusion is not positional: baseline=${wa:-?}, delta=$d (want <=20 and 25-40)"
+  fi
+  rm -f "$f2a" "$f2b"
   # The other side, which is the defect that motivated the rule: the same six bullets with the citation
   # at the end - what real close runs wrote before G4 - must NOT read as an appendix. If both shapes are
   # recognised, the assertion above is measuring nothing.
@@ -371,6 +411,201 @@ kit(){
 }
 
 selftest_bad=0
+# The archive is the regression set. Fixtures prove a rule CAN fire; only the corpus shows whether it
+# fires on runs that actually happened, which is the gap that let four instrument defects ship silently.
+# Verdicts are recorded, so re-reading history has to be a deliberate edit to a table, not a surprise
+# in a CI log three months from now. $? is captured into a variable on the same line as the run:
+# putting it in printf's argument list after $(basename ...) records basename's status, which is how the
+# first version of this table claimed all 71 artifacts were clean.
+# The three descriptions of the same numbers: the spec names the tunables, the shipped template carries
+# the defaults, docs/tunables.md says where each value came from, and docs/tunables.json is that table's
+# machine-readable twin. mode=committed compares the three files (fast, runs in the static path);
+# mode=live re-runs the graders over the whole corpus and adds the record to the comparison, which is how
+# a stale record is caught. A whole-document substring test used to do this job and passed while the
+# corpus said n=121 and the row said n=119: the digits existed somewhere else in the file.
+provsweep(){
+  mode="${1:-committed}"
+  if [ ! -f "$REPO/docs/tunables.md" ] || [ ! -f "$B/assets/index-template.md" ]; then
+    no "tunable descriptions missing (docs/tunables.md or the shipped template)"
+    return
+  fi
+  python3 - "$REPO" "$mode" <<'PYDRIFT'
+import subprocess, sys, os, json, re
+repo, mode = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else 'committed')
+TPL = os.path.join(repo, 'bundle', 'worldbuilding', 'assets', 'index-template.md')
+SPEC = os.path.join(repo, 'docs', 'superpowers', 'specs', '2026-09-29-worldbuilding-kit-design.md')
+REC = os.path.join(repo, 'docs', 'tunables.json')
+BK = chr(96)
+bad = []; checked = 0; per_key = {}
+SKIP = ('status', 'kind', 'title', 'pillar', 'pillars', 'threads', 'slug', 'date', 'name',
+        'world', 'sessions', 'last_date', 'last', 'created', 'owner', 'tunables')
+tpl = open(TPL).read()
+# the frontmatter block only, and indented keys count: the tunables live nested under `tunables:`,
+# so a rule anchored at column 0 found three top-level fields and called it coverage
+fm = re.match(r"^---\n(.*?)\n---", tpl, re.S)
+tk = dict((k, v.split(" #")[0].strip()) for k, v in
+            # [ ]* and not \s* after the colon: \s matches the newline, so the bare key `tunables:`
+            # used to swallow the next line and record words_per_turn as a VALUE of tunables
+            re.findall(r"^[ ]*([a-z_]+):[ ]*([^\n]+)$", fm.group(1) if fm else "", re.M))
+if os.path.exists(SPEC):
+    m = re.search(r"### 3[.]2[\s\S]*?(?=\n### |\n## |\Z)", open(SPEC).read())
+    blk = m.group(0) if m else ''
+    for k in sorted(set(re.findall(r"^[ \t]*[`]([a-z_]+)[`]\s*[:=]", blk, re.M))):
+        if k not in tk and k not in SKIP:
+            bad.append('spec 3.2 names %s, the shipped template has no such tunable' % k)
+    for k in sorted(tk):
+        if k not in SKIP and not re.search(r"\b" + k + r"\b", blk):
+            bad.append('template tunable %s is absent from spec 3.2' % k)
+doc = open(os.path.join(repo, 'docs', 'tunables.md')).read()
+dlines = doc.split(chr(10))
+# one row per tunable is not required - the four scoring weights legitimately share a line - but every
+# tunable must APPEAR somewhere carrying its shipped default, and the cells quoted are the ones the
+# matching lines actually contain. The previous version keyed rows to the first backticked name on a
+# line, so three of the four weights looked missing.
+rows = {}
+for k in tk:
+    hits = [l for l in dlines if (BK + k + BK) in l or (BK + k + ":") in l]
+    rows[k] = chr(10).join(hits)
+for k in sorted(tk):
+    if k in SKIP or k == 'tunables':
+        continue
+    if not rows[k]:
+        bad.append('%s: no row in docs/tunables.md' % k)
+        continue
+    val = str(tk[k]).split()[0]
+    if (BK + k + ": " + val + BK) not in rows[k] and (BK + k + ":" + val + BK) not in rows[k] \
+            and (BK + k + " = " + val + BK) not in rows[k]:
+        bad.append('%s: the row does not carry the shipped default %s' % (k, val))
+
+def cells_of(rep):
+    out = {}
+    for k, v in (rep or {}).items():
+        if k.startswith('_'):
+            continue
+        out[k] = v
+    return out
+
+def compare(rep, label):
+    global checked
+    for key in sorted(rows):
+        cells = rep.get(key) or ((rep.get('_memo') or {}) if key == 'memo_item_words' else None)
+        if not isinstance(cells, dict):
+            continue
+        for cell, n, med, over in CELL.findall(rows[key]):
+            checked += 1
+            per_key[key] = per_key.get(key, 0) + 1
+            d = (cells.get(cell) or {}).get('dist')
+            if not d:
+                bad.append('%s %s: %s record has no samples' % (label, cell, key)); continue
+            if int(n) != d['n']:
+                bad.append('%s: doc says %s n=%s, %s says n=%d' % (key, cell, n, label, d['n']))
+            if med and int(med) != d['med']:
+                bad.append('%s: doc says %s median %s, %s says %d' % (key, cell, med, label, d['med']))
+            if over and cells[cell].get('cap_seen'):
+                want = 100 * cells[cell]['over'] // max(d['n'], 1)
+                if int(over) != want:
+                    bad.append('%s: doc says %s %s%% over, %s says %d%%' % (key, cell, over, label, want))
+
+CELL = re.compile(r"((?:single|multi)/(?:skill|control))\s+n=(\d+)"
+                  r"(?:[^|%]*?median\s+(\d+))?(?:[^|%]*?(\d+)[ ]*%[ ]*over)?")
+committed = None
+if os.path.exists(REC):
+    try:
+        committed = json.load(open(REC))
+    except Exception as e:
+        bad.append('docs/tunables.json is unreadable: %s' % str(e)[:60])
+elif mode == 'committed':
+    bad.append('docs/tunables.json missing - the provenance table has no machine-readable twin')
+if committed:
+    compare(committed, 'the record')   # full dict: the memo cells live under _memo
+    b = (committed.get('_markers') or {}).get('beats_over', {}).get('multi')
+    if b:
+        tag = '%d of %d runs' % (b['runs_with_it'], b['runs'])
+        if tag not in doc:
+            bad.append('beats_over: the doc does not carry ' + tag)
+if mode == 'live':
+    r = subprocess.run([sys.executable, os.path.join(repo, 'tools', 'tunable_provenance.py'), '--json'],
+                       capture_output=True, text=True, cwd=repo)
+    try:
+        fresh = json.loads(r.stdout)
+        compare(fresh, 'a fresh corpus run')
+        if committed:
+            for k in cells_of(fresh):
+                for c in cells_of(fresh)[k]:
+                    a = (cells_of(fresh)[k][c] or {}).get('dist') or {}
+                    z = (((committed.get(k) or {}).get(c) or {}).get('dist')) or {}
+                    if a and z and a.get('n') != z.get('n'):
+                        bad.append('record is stale: %s %s n=%d in the corpus, %s in docs/tunables.json'
+                                   % (k, c, a['n'], z.get('n')))
+    except Exception:
+        bad.append('provenance tool produced no JSON: ' + r.stderr.strip()[:60])
+# A floor on cells is meaningless if the table grew a row; what matters is that every key the record
+# measured was also looked at by this guard. A key silently contributing nothing is how the substring
+# version stayed green while a row was stale.
+src = committed or {}
+measured = set(k for k, v in src.items()
+               if not k.startswith('_') and isinstance(v, dict)
+               and any((c or {}).get('dist') for c in v.values()))
+if (src.get('_memo') or {}).get('multi/skill', {}).get('dist'):
+    measured.add('memo_item_words')
+silent = sorted(measured - set(per_key))
+if checked < 4:
+    bad.append('only %d cells compared - the guard is not looking at the table' % checked)
+if measured and silent:
+    bad.append('the record measured %s but this guard read no cells for it' % ', '.join(silent))
+print(('  drift: ' + '; '.join(bad[:8])) if bad else
+      '   %d cells, %d template defaults, mode=%s' % (checked, len(tk), mode))
+sys.exit(1 if bad else 0)
+PYDRIFT
+}
+
+golden(){
+  gt=$B/tests/golden_verdicts.tsv
+  if [ "${GOLDEN_RECORD:-0}" = 1 ]; then
+    : > "$gt"
+    for f in "$REPO"/evidence/*.md; do
+      [ -f "$f" ] || continue
+      for g in wordcount invariants; do
+        python3 "$B/tests/$g.py" "$f" >/dev/null 2>&1; got=$?
+        printf '%s\t%s\t%s\n' "$(basename "$f")" "$g" "$got" >> "$gt"
+      done
+      python3 "$B/tests/reviewcheck.py" --evidence "$f" >/dev/null 2>&1; got=$?
+      printf '%s\treviewcheck\t%s\n' "$(basename "$f")" "$got" >> "$gt"
+    done
+    ok "golden verdict table recorded: $(wc -l < "$gt") rows"
+    return
+  fi
+  if [ ! -s "$gt" ]; then
+    no "golden verdict table missing - regenerate with GOLDEN_RECORD=1 bash check.sh"
+    return
+  fi
+  drift=0; shown=0
+  while IFS=$'\t' read -r name g want; do
+    f="$REPO/evidence/$name"
+    [ -f "$f" ] || continue
+    if [ "$g" = reviewcheck ]; then
+      python3 "$B/tests/reviewcheck.py" --evidence "$f" >/dev/null 2>&1
+    else
+      python3 "$B/tests/$g.py" "$f" >/dev/null 2>&1
+    fi
+    got=$?
+    if [ "$got" != "$want" ]; then
+      drift=$((drift + 1))
+      if [ "$shown" -lt 4 ]; then printf '     drift: %s %s want=%s got=%s\n' "$name" "$g" "$want" "$got"; shown=$((shown + 1)); fi
+    fi
+  done < "$gt"
+  if [ "$drift" = 0 ]; then
+    ok "the archive still reads the same way: $(wc -l < "$gt") recorded verdicts, no drift"
+  else
+    no "graders disagree with recorded history on $drift verdicts - re-derive before re-recording"
+  fi
+}
+
+provenance(){
+  provsweep committed && ok "spec, template and the provenance record still agree" \
+    || no "tunable descriptions drifted (see above)"
+}
+
 multi(){
   # opt-in: needs multi-turn artifacts. Same reason as behavior - green static checks must never be
   # read as "the cadence and read-budget invariants hold".
@@ -397,33 +632,10 @@ multi(){
   done
   [ "$rc" = 0 ] && ok "multi-turn invariants hold (questions, reads, cadence, provocation)" \
     || no "multi-turn invariant breached (bitmask $rc: 1 words/beats, 2 appendix/scoring, 4 questions, 8 reads, 16 cadence, 32 provocation, 64 consecutive pillar; plus canon-loss and eaten-turn flags)"
-  # The table is derived data, so it has to stay derived. Static path skips this: it costs about a
-  # minute over the whole corpus, and the fast lane's speed is why anyone runs it before committing.
-  if [ -f "$REPO/tools/tunable_provenance.py" ] && [ -f "$REPO/docs/tunables.md" ]; then
-    python3 - "$REPO" <<'PYPROV'
-import subprocess, sys, os, json
-repo = sys.argv[1]
-r = subprocess.run([sys.executable, os.path.join(repo, 'tools', 'tunable_provenance.py'), '--json'],
-                   capture_output=True, text=True, cwd=repo)
-try:
-    rep = json.loads(r.stdout)
-except Exception:
-    print('  FAIL provenance drift check: the tool produced no JSON - ' + r.stderr.strip()[:70])
-    sys.exit(0)
-doc = open(os.path.join(repo, 'docs', 'tunables.md')).read()
-want = []
-n = rep['words_per_turn']['multi/skill']['dist']['n']
-want.append(('multi/skill n=%d' % n, ('multi/skill n=%d' % n) in doc))
-b = rep['_markers']['beats_over']['multi']
-tag = '%d of %d runs' % (b['runs_with_it'], b['runs'])
-want.append(('beats_over ' + tag, tag in doc))
-bad = [w for w, okk in want if not okk]
-if bad:
-    print('  FAIL docs/tunables.md drifted from the corpus: ' + '; '.join(bad)
-          + ' - regenerate with tools/tunable_provenance.py')
-else:
-    print('  ok   docs/tunables.md still matches a live run of the provenance tool')
-PYPROV
+  if [ -f "$REPO/docs/tunables.md" ]; then
+    provsweep live \
+      && ok "a fresh corpus run still matches the tunable table and its record" \
+      || no "tunable table drifted against a fresh corpus run (see above)"
   fi
 }
 
@@ -495,7 +707,7 @@ meta(){
   # behavior is a deliberate opt-in: it needs run artifacts, so "all green" must never be read as
   # "the word budget held". Exempting a name here is a decision, made visible.
   optin='^(behavior|multi)$'
-  defined=$(grep -oE '^[a-z]+\(\)\{' "$0" | sed 's/[(){]//g' | grep -vE '^(ok|no|ck|has|newest|pil|selftest|meta)$' | grep -vE "$optin" | sort -u)
+  defined=$(grep -oE '^[a-z]+\(\)\{' "$0" | sed 's/[(){]//g' | grep -vE '^(provsweep|ok|no|ck|has|newest|pil|selftest|meta)$' | grep -vE "$optin" | sort -u)
   run=$(sed -n '/for f in /s/.*for f in \([a-z ]*\);.*/\1/p' "$0" | tr ' ' '\n' | sort -u | grep -v '^$')
   local missing; missing=$(comm -23 <(echo "$defined") <(echo "$run"))
   [ -z "$missing" ] && ok "every defined check runs in 'all'" || no "SILENTLY EXCLUDED from all: $(echo $missing)"
@@ -1308,6 +1520,60 @@ print(len(cc.tool_commands((gzip.open(p,'rt') if p.endswith('.gz') else open(p))
   { [ "$r" = 1 ] && grep -q '^CANON-LOSS' "$rv/act2.out"; } \
     && ok "selftest: an executed rm of an entity file still trips the witness (rc=1)" \
     || no "selftest: an executed rm did NOT trip the witness (rc=$r) - act/mention split blinded the gate"
+  # F3 (audited 2026-10-16): the act/mention split trusted the KEY NAME. One bash call anywhere in a
+  # log put the run on the "we can tell" path, and a deletion recorded under any other key read as
+  # "written about, never run" - so the loud branch was already dead in most real runs.
+  printf '%s\n' '{"message":{"content":[{"type":"toolCall","name":"bash","arguments":{"command":"ls world/encyclopedia"}}]}}' \
+               '{"message":{"content":[{"type":"toolCall","name":"shell","arguments":{"cmd":"rm -f encyclopedia/tide-lock-artifact.md"}}]}}' > "$rv/mixed.jsonl"
+  python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$rv/mixed.jsonl" >"$rv/mixed.out" 2>&1; r=$?
+  { [ "$r" = 1 ] && grep -q '^CANON-LOSS' "$rv/mixed.out"; } \
+    && ok "selftest: a deletion under an unfamiliar argument key still trips the witness (rc=1)" \
+    || no "selftest: mixed-key transcript read as a note (rc=$r) - the split is key-name-blind again"
+  printf '%s\n' '{"message":{"content":[{"type":"toolCall","name":"write_file","arguments":{"path":"world/notes.md","content":"later we may rm encyclopedia/tide-lock-artifact.md"}}]}}' > "$rv/body.jsonl"
+  python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$rv/body.jsonl" >"$rv/body.out" 2>&1; r=$?
+  { [ "$r" = 0 ] && grep -q '^CANON-NOTE' "$rv/body.out"; } \
+    && ok "selftest: an rm inside a written file body stays a note, not a verdict (rc=0)" \
+    || no "selftest: a deletion described in written content read as LOSS (rc=$r) - the loud branch swallows prose"
+  printf '%s\n' '{"message":{"content":[{"type":"toolCall","name":"remove_file","arguments":{"path":"encyclopedia/tide-lock-artifact.md"}}]}}' > "$rv/named.jsonl"
+  python3 "$B/tests/canoncheck.py" --dir "$B/tests/fixtures/established" --transcript "$rv/named.jsonl" >"$rv/named.out" 2>&1; r=$?
+  { [ "$r" = 1 ] && grep -q '^CANON-LOSS' "$rv/named.out"; } \
+    && ok "selftest: a structured remove_file call with no rm string trips the witness (rc=1)" \
+    || no "selftest: remove_file by name and path read as clean (rc=$r) - the tool named for deletion is invisible"
+  # F4: a review marker quoted in prose, or lifted out of the index template, reset the session counter
+  # - the guide text was being read as a delivered review. Quoting must not move the gap, and the gap
+  # must still move when no review was logged at all.
+  python3 - "$rv" "$B/tests/reviewcheck.py" <<'PYF4' && ok "selftest: a quoted review marker is not a delivered review" \
+    || no "selftest: review markers are counted from prose again (numbers above)"
+import subprocess, sys
+rv, tool = sys.argv[1], sys.argv[2]
+MID = chr(183)
+def art(name, log_lines, quotes):
+    L = ['# x (skill) MULTI', 'label: commit=cafe000 guidance=cf1f1a6e words_per_turn=170', '']
+    for i in range(1, 4):
+        L += ['## turn %d' % i, 'writer: an answer', '**Digest.** thin.', '**Question.** which one?',
+              '**Stop.** one beat.', '']
+    L += ['## world/ contents', '--- ./world/log.md']
+    for s in range(1, 4):
+        L += ['## 2026-10-0%d (session %d)' % (s + 1, s)]
+        L += log_lines.get(s, ['- turn: %d %s provoked: cost %s targeted: geography-routes' % (s, MID, MID)])
+    open(rv + '/' + name, 'w').write(chr(10).join(L + quotes) + chr(10))
+REVIEW = '- turn: 1 %s provoked: review %s targeted: faith-myth' % (MID, MID)
+art('r_real.md', {1: [REVIEW]}, [])
+art('r_quoted.md', {1: [REVIEW]},
+    ['**Stop.** `provoked: review`%s no memo owed this session.' % MID,
+     '- turn: <n> %s provoked: <one or more of the five engagement types, plus review on a memo'
+     ' turn> %s targeted: <pillar>' % (MID, MID)])
+art('r_none.md', {}, [])
+def gap(f):
+    p = subprocess.run(['python3', tool, '--evidence', rv + '/' + f], capture_output=True, text=True)
+    return ''.join(c for c in p.stdout if c.isdigit()), p.returncode
+g1, c1 = gap('r_real.md'); g2, c2 = gap('r_quoted.md'); g3, c3 = gap('r_none.md')
+if g1 and g1 == g2 and g1 != g3:
+    print('   gap stays %s when the line is quoted twice, %s with nothing logged' % (g1, g3))
+    sys.exit(0)
+print('   real=%s(%s) quoted=%s(%s) none=%s(%s)' % (g1, c1, g2, c2, g3, c3))
+sys.exit(1)
+PYF4
   rm -rf "$TMP"
 }
 fixture(){
@@ -1323,14 +1589,14 @@ fixture(){
 
 case "${1:-all}" in
   harness) harness;; fixture) fixture;; behavior) behavior;; multi) multi;; templates) templates;; rubric) rubric;; voice) voice;;
-  method) method;; kit) kit;; selftest) selftest;;
+  method) method;; kit) kit;; selftest) selftest;; golden) golden;; provenance) provsweep committed;;
   all)
     echo "[selftest]"; selftest; meta
     if [ "$selftest_bad" = 1 ]; then
       echo "check.sh: SELFTEST FAILED - the assertion helper is broken; refusing to run the gate"
       echo "check.sh: $PASS passed, $FAIL failed"; exit 2
     fi
-    for f in harness fixture templates rubric voice method kit; do echo "[$f]"; $f; done;;
+    for f in harness fixture templates rubric voice method kit golden provenance; do echo "[$f]"; $f; done;;
 esac
 # The suite's size is quoted in README and in the workflow as a claim about coverage, and nothing kept
 # those figures honest: a trim or a new assertion left the prose describing a run that no longer happens.

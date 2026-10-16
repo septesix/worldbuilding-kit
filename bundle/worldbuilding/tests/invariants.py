@@ -15,7 +15,8 @@ evening: reads that counted edits, tunables that silently fell back to defaults 
 was blank, and a close detector that only recognised bullets shaped like `- slug:`.
 """
 import sys, re, traceback, json, os, gzip
-import os, wordcount as wc     # option length is measured by one function, in one file
+import os, wordcount as wc     # option length is measured by one func
+import harness_markers as hm   # so is the writer echo: one rule, not two copies that can drifttion, in one file
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PILLARS = [m.group(1) for m in re.finditer(r'^\| ([a-z-]+) +\|',
@@ -200,11 +201,17 @@ def main():
     rc = 0
     for i, b in enumerate(ts):
         lines = b.split('\n')
-        body = [l for l in lines if not l.startswith('writer:')]
+        body = [l for k, l in enumerate(lines) if not hm.is_writer_echo(lines, k)]
         is_infra = 'INFRA-FAIL' in ' '.join(lines)
         closing = bool(CLOSING.search(' '.join(lines)))
         opts  = [l for l in body if OPT.match(l)]
-        recap = [l for l in body if BULLET.match(l) and (RECAP.match(l) or closing)]
+        # Same rule wordcount applies, so the two gates cannot disagree about one turn: an appendix
+        # bullet needs the shape AND a close that is actually in evidence - this turn is the closing
+        # turn, or the block announced it. Shape alone laundered reaction mode out of the cap.
+        recap = [l for k, l in enumerate(body)
+                 if BULLET.match(l) and not OPT.match(l)
+                 and (bool(wc.CLOSE.match(l))
+                      or (RECAP.match(l) and hm.close_context(body, k, i == len(ts) - 1, len(ts))))]
         memo_l, body_rest = wc.memo_split(body)          # the memo is an appendix, not a monologue
         opts = [l for l in body_rest if OPT.match(l)]
         memo_w = [wc.wc_words(l) for l in memo_l if wc.MEMO_ITEM.match(l)]
@@ -312,7 +319,7 @@ def main():
         print(f'   state note: targeted: logged in {nlog}/{len(targ)} turns; rotation was {how}'
               f'{"; " + str(len(targ) - nlog) + " turn(s) inferred from prose" if nlog < len(targ) else ""}')
     # no ^ anchor: a chunk starts with the turn number, so the writer line is never at position 0
-    owed = (len(ts) - 1) if len(ts) >= 12 else next((j for j in range(len(ts))
+    owed = (len(ts) - 1) if len(ts) >= hm.SESSION_TURNS else next((j for j in range(len(ts))
              if re.search(r"(?i)writer:.*(that's all|that is all|wrap it up|done for today)", ts[j])), -1)
     if owed >= 0:
         tail = ' '.join(ts[owed:])

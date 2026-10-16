@@ -69,6 +69,12 @@ def entity_names(text):
     return {n.lower() for n in re.findall(r'encyclopedia/([A-Za-z0-9_-]+\.md)', text)}
 
 
+# argument keys that carry a file body rather than an instruction: prose about a deletion is
+# still prose when it travels inside a write call
+_CONTENT_KEYS = frozenset('content newtext oldtext text body data message prompt instructions diff'.split())
+REMOVAL_NAME = re.compile(r'(?i)\b(remove|delete|unlink|trash|purge|erase)[_ -]?(file|all)?\b|\brm\b')
+_PATH_KEYS = frozenset('path paths file filepath file_path target targetpath directory dir'.split())
+
 def tool_commands(text):
     """The commands a machine recorded as RUN, from a session transcript.
 
@@ -93,8 +99,31 @@ def tool_commands(text):
                     args = json.loads(args)
                 except Exception:
                     args = None
-            if isinstance(args, dict) and isinstance(args.get('command'), str):
-                cmds.append(args['command'])
+            if isinstance(args, dict):
+                if isinstance(args.get('command'), str):
+                    cmds.append(args['command'])
+                # A tool invocation hands its instructions to the world through its arguments, so any
+                # argument that is not file CONTENT is a thing the tool was told to do - whatever the
+                # key is called. Collecting only `command` made one ordinary bash call anywhere in a
+                # log downgrade a deletion stored under another key to "written about, never run".
+                # Content keys stay out: a write whose body documents `rm foo.md` is prose, not an act.
+                if x.get('name') or x.get('tool_name') or x.get('tool'):
+                    for k, v in args.items():
+                        if k.lower() in _CONTENT_KEYS or not isinstance(v, str):
+                            continue
+                        if v not in cmds:
+                            cmds.append(v)
+                    # a tool named for deletion needs no `rm` in its arguments: the path IS the command.
+                    # Append a synthetic one so the existing deletion regex sees an act, not a mention.
+                    nm = str(x.get('name') or x.get('tool_name') or x.get('tool') or '')
+                    if REMOVAL_NAME.search(nm):
+                        for k, v in args.items():
+                            if k.lower() in _PATH_KEYS:
+                                for pth in (v if isinstance(v, (list, tuple)) else [v]):
+                                    if isinstance(pth, str) and '/' in pth:
+                                        cmds.append('rm ' + pth)
+            elif isinstance(args, str) and (x.get('name') or x.get('tool_name')):
+                cmds.append(args)
             for v in x.values():
                 walk(v)
         elif isinstance(x, list):

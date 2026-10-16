@@ -36,7 +36,7 @@ Then start pi in a writing project and ask it to build a world. It installs the 
 
 ## Development
 
-    bash bundle/worldbuilding/tests/check.sh all        # 199 static assertions, incl. self-tests of the gates
+    bash bundle/worldbuilding/tests/check.sh all        # 207 static assertions, incl. self-tests of the gates
     bash bundle/worldbuilding/tests/check.sh behavior   # grade recorded runs at THIS guidance hash only
     bash bundle/worldbuilding/tests/multi               # 12-turn runs against one persistent world
 

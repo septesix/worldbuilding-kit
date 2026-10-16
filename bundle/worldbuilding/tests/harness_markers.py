@@ -22,6 +22,8 @@ Exit codes, shared by every grader in this directory:
 NOT_GRADED = 64
 CRASH = 128
 VERDICT_SECTION = '## harness verdicts'
+# the middot that separates fields on a machine line; prose that quotes a marker rarely has one
+SEPARATOR = chr(0xb7)
 
 # the exact shapes this repo's own tools emit. Deliberately anchored and worded, not a generic
 # "looks like a report line": a model writing `ok then what?` must not lose a transcript line.
@@ -40,6 +42,87 @@ def strip(text):
     import re
     pat = re.compile(_HARNESS_LINE, re.M)
     return '\n'.join(l for l in text.split('\n') if not pat.match(l))
+
+
+# --- position, not shape: who wrote this line, and where in the turn does it sit ---------
+#
+# These three helpers exist because an independent audit of the graders found four defects that were
+# all the same mistake: a rule keyed on what a line LOOKS like instead of where it came from. A close
+# recap and a reaction-mode sketch are both "bullets starting with a slug"; a harness echo and an
+# assistant line that begins "writer:" are both lines starting "writer:"; the guide's example of a
+# machine line and a real machine line are both `- turn: ... · provoked: ... ·`.
+
+_TURN_HEAD = re.compile(r'^##\s+turn\s+\d+', re.I)
+_WRITER = re.compile(r'^writer\s*:', re.I)
+# In real runs the close recap is announced by a plain sentence - "Session 5 closed at turn 12 of 12."
+# - and not always by a bold cue, so both spellings open the region. "**The six lines.**" (reaction
+# mode) deliberately does NOT, which is the whole point of the distinction.
+_CLOSE_CUE = re.compile(r'^(?:\*\*)?\s*(?:what we decided|decided\b|session \d+ closed'
+                        r'|.*\bclosed at turn\b)', re.I)
+
+
+def is_writer_echo(lines, i):
+    """True only for the harness echo: the first non-blank line right after a `## turn N` header.
+
+    Both graders used to skip ANY line starting `writer:`, which is a free-words channel - a line of
+    assistant prose can opt out of the cap by beginning with that token. In the corpus 140 of 140
+    real `writer:` lines sit in the echo position, so narrowing it costs no measurement.
+    """
+    if not _WRITER.match(lines[i].strip()):
+        return False
+    for j in range(i - 1, -1, -1):
+        s = lines[j].strip()
+        if not s:
+            continue
+        return bool(_TURN_HEAD.match(s))
+    return False
+
+
+def in_close_region(lines, i):
+    """True when this same turn block already announced the session close."""
+    return any(_CLOSE_CUE.match(l.strip()) for l in lines[:i])
+
+
+# someone asking to end the session is positional evidence that this turn is the close, but only on
+# the LAST turn: mid-session it would let the writer's phrasing launder the model's words
+_WRAP_CUE = re.compile(r"(?i)\b(that'?s all|that is all|wrap (it|things) up|done for (today|the day)|"
+                       r"let'?s stop here|call it a (day|night)|close the session)\b")
+
+
+# mirrors turns_per_session in the shipped template; invariants' close-contract check already uses the
+# same threshold, and a second definition of "this run reached a session" is how two gates disagree
+SESSION_TURNS = 12
+
+
+def close_context(lines, i, is_last=False, n_turns=0):
+    """Is line i inside a session close? Three ways: the turn announced it, the writer asked for the
+    wrap-up on the final turn, or the run reached a session's worth of turns and this is the last one.
+    Shape alone is not one of them - reaction mode writes the same bullets mid-session.
+    """
+    if in_close_region(lines, i):
+        return True
+    if not is_last:
+        return False
+    joined = chr(10).join(lines)
+    return bool(_CLOSE_CUE.search(joined) or _WRAP_CUE.search(joined) or n_turns >= SESSION_TURNS)
+
+
+def is_machine_line(line):
+    """A `log.md` machine line, as opposed to a sentence ABOUT one.
+
+    A bullet at column 0 carrying a `·` separator and digits in the `turn:` slot. The documented
+    example `- turn: <n> · provoked: <one or more of the five engagement types, plus review on a memo
+    turn> · targeted: <pillar>` fails the digit test by construction - that is the point, because a
+    grader was counting the guide text as a delivered review. Prose that quotes a marker inside bold
+    beats or inline code is rejected the same way. The older two-line spelling with no `turn:` field
+    still counts, so a run that logged a review that way is not silently reclassified as review-owed.
+    """
+    s = line.strip()
+    if not re.match(r'^[-*]\s', s) or SEPARATOR not in s or '**' in s:
+        return False
+    if re.search(r'turn:\s*\d+', s, re.I):
+        return True
+    return bool(re.match(r'^[-*]\s+provoked:', s, re.I))
 
 
 def pi_status(text):

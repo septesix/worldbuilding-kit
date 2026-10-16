@@ -1,0 +1,229 @@
+{
+ "words_per_turn": {
+  "single/skill": {
+   "dist": {
+    "n": 30,
+    "min": 46,
+    "med": 131,
+    "p90": 185,
+    "max": 202
+   },
+   "over": 8,
+   "cap_seen": 170
+  },
+  "single/control": {
+   "dist": {
+    "n": 10,
+    "min": 122,
+    "med": 190,
+    "p90": 708,
+    "max": 708
+   },
+   "over": 9,
+   "cap_seen": 120
+  },
+  "multi/skill": {
+   "dist": {
+    "n": 121,
+    "min": 7,
+    "med": 173,
+    "p90": 219,
+    "max": 345
+   },
+   "over": 71,
+   "cap_seen": 170
+  },
+  "multi/control": {
+   "dist": {
+    "n": 17,
+    "min": 130,
+    "med": 208,
+    "p90": 250,
+    "max": 358
+   },
+   "over": 12,
+   "cap_seen": 170
+  }
+ },
+ "reads_per_turn": {
+  "single/skill": {
+   "dist": null,
+   "over": 0,
+   "cap_seen": null
+  },
+  "single/control": {
+   "dist": null,
+   "over": 0,
+   "cap_seen": null
+  },
+  "multi/skill": {
+   "dist": {
+    "n": 123,
+    "min": 0,
+    "med": 0,
+    "p90": 2,
+    "max": 4
+   },
+   "over": 0,
+   "cap_seen": 3
+  },
+  "multi/control": {
+   "dist": {
+    "n": 17,
+    "min": 0,
+    "med": 0,
+    "p90": 0,
+    "max": 1
+   },
+   "over": 0,
+   "cap_seen": 3
+  }
+ },
+ "option_words": {
+  "single/skill": {
+   "dist": {
+    "n": 26,
+    "min": 11,
+    "med": 15,
+    "p90": 18,
+    "max": 18
+   },
+   "over": 0,
+   "cap_seen": 18
+  },
+  "single/control": {
+   "dist": {
+    "n": 2,
+    "min": 15,
+    "med": 16,
+    "p90": 17,
+    "max": 17
+   },
+   "over": 0,
+   "cap_seen": 18
+  },
+  "multi/skill": {
+   "dist": {
+    "n": 13,
+    "min": 11,
+    "med": 14,
+    "p90": 18,
+    "max": 18
+   },
+   "over": 0,
+   "cap_seen": 18
+  },
+  "multi/control": {
+   "dist": {
+    "n": 1,
+    "min": 14,
+    "med": 14,
+    "p90": 14,
+    "max": 14
+   },
+   "over": 0,
+   "cap_seen": 18
+  }
+ },
+ "_markers": {
+  "texture": {
+   "single": {
+    "runs_with_it": 0,
+    "runs": 44
+   },
+   "multi": {
+    "runs_with_it": 10,
+    "runs": 19
+   }
+  },
+  "same_pillar": {
+   "single": {
+    "runs_with_it": 0,
+    "runs": 44
+   },
+   "multi": {
+    "runs_with_it": 12,
+    "runs": 19
+   }
+  },
+  "ledger_gap": {
+   "single": {
+    "runs_with_it": 0,
+    "runs": 44
+   },
+   "multi": {
+    "runs_with_it": 3,
+    "runs": 19
+   }
+  },
+  "canon_loss": {
+   "single": {
+    "runs_with_it": 0,
+    "runs": 44
+   },
+   "multi": {
+    "runs_with_it": 0,
+    "runs": 19
+   }
+  },
+  "beats_over": {
+   "single": {
+    "runs_with_it": 0,
+    "runs": 44
+   },
+   "multi": {
+    "runs_with_it": 15,
+    "runs": 19
+   }
+  },
+  "options_over": {
+   "single": {
+    "runs_with_it": 0,
+    "runs": 44
+   },
+   "multi": {
+    "runs_with_it": 3,
+    "runs": 19
+   }
+  }
+ },
+ "_files": 63,
+ "_keys": 21,
+ "_excluded": {
+  "empty_turns": 0
+ },
+ "_memo": {
+  "single/skill": {
+   "dist": {
+    "n": 13,
+    "min": 15,
+    "med": 38,
+    "p90": 53,
+    "max": 60
+   },
+   "cap": 45,
+   "over": 3
+  },
+  "single/control": {
+   "dist": null,
+   "cap": 45,
+   "over": 0
+  },
+  "multi/skill": {
+   "dist": {
+    "n": 1,
+    "min": 50,
+    "med": 50,
+    "p90": 50,
+    "max": 50
+   },
+   "cap": 45,
+   "over": 1
+  },
+  "multi/control": {
+   "dist": null,
+   "cap": 45,
+   "over": 0
+  }
+ }
+}
