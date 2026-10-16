@@ -72,7 +72,11 @@ BEAT      = re.compile(r'^\s*\*\*(write back|reflect|digest|target|question|stop
 # The per-beat cap names the bloated beat, which is the part worth rewriting.
 BEAT_WORD = re.compile(r'^\s*\*\*(write back|reflect|digest|target|question|stop)\b[^*]*\*\*\s*(.*)$',
                        re.I | re.M)
-BEAT_CAP_DEFAULT = 45
+BEAT_CAP_DEFAULT = 60   # measured over the corpus, not felt (spec R-23). Per-beat medians: digest 22,
+# question 14, target 27, stop 9, write back 40, reflect 41. share over 45: reflect 37%, write back 30%,
+# target 20%, the other three 0% - so at 45 the cap was mostly flagging ordinary beats that merely ran a
+# little long, not the monologues (p95 70-72, p99 104-107, which are ~1-2% of beats). share over 60:
+# reflect 12%, write back 7%, target 3%, lean beats 0%. Same shape, quieter, and 90w+ still fails.
 
 
 def beat_cap(text, label):

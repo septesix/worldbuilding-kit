@@ -18,7 +18,7 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 | `texture_cadence: 4` | turns allowed between texture pillars | `SKILL.md`, `rubric.md` | multi: **10 of 19 runs** contain a cadence breach · single: flag never emitted | **measured in multi only.** Single-turn runs cannot show it (one turn, no window). Placement was moved to the write-back step (G3, key `52805797`); n=1 verified there, unverified at 12 turns |
 | pillar repetition (same rule, 2-turn window) | same pillar on consecutive turns | `SKILL.md` | multi: **12 of 19 runs** breach | **weakest point in the guidance**, and the reason G3 is provisional. Observed repeats end at turns 2 and 7 of a long session |
 | `reads_per_turn: 3` | entity files opened per turn | `SKILL.md`, `rubric.md` | multi/skill n=123: median 0, p90 2, max 4, **0% over** · multi/control n=17: median 0, max 1 · single: not measured | **supported, and loose.** Nobody gets near 3. Median 0 reads per turn means the budget describes a fear, not a behaviour — the interesting number here is 0, not 3 |
-| `beat_budget: 45` | words in one beat (the ask, or a write-back block) | `rubric.md`, `voice.md` | multi: **18 of 19 runs** contain `target NNw > beat 45` · single: flag never emitted | **breached in almost every session, and by the instrument's own arithmetic.** Observed beats: 47, 48, 50, 53, 56, 68, 74. Either beats are written longer than the budget intends, or 45 was never about the thing now being measured (write-back blocks count as beats). Highest-value unexamined number in the skill |
+| `beat_budget: 60` | words in one labelled beat | `rubric.md`, `voice.md`, `SKILL.md` | n=627 beats, every one named by the instrument (cap forced to 1 in throwaway copies so nothing hides): median `digest` 22 · `question` 14 · `target` 27 · `stop` 9 · `write back` 40 · `reflect` 41. Share over: at 45 -> reflect 37%, write back 30%, target 20%, the three lean beats 0%; at 60 -> 12% / 7% / 3% / 0% | **raised 45 -> 60 (R-23).** 45 was biting the two beats the contract *requires* to carry content, while the monologues it existed to stop (p95 70-72, p99 104-107) were already rare. Best-supported number in the skill now, and the only one where cap and behaviour were measured in the same pass |
 | `option_words: 18` | each offered direction's length | `rubric.md` | n=41 longest-option samples: median 15, max 18, 0% over **by the length column** · multi: **3 of 19 runs** contain `option 19w > option_words 18` | **at the limit, not under it.** The aggregate and the flag disagree because they measure different things (longest option vs any option); 19-word options exist. Do not tighten this to "fix" 3 breaches without deciding which reading is the rule |
 | `memo_item_words: 45` | each line of a review memo | `rubric.md` | single/skill n=13: median 38, max **60**, 3 items over · multi/skill n=1: 50w, over | **measured, breached 4 times in 14 items.** The shape cap is real and roughly right; the misses are one clause long. n=1 for multi — do not read it as a mode difference |
 | `turns_per_session: 12` | when the close cue fires | `SKILL.md`, `index-template.md` | n=1: one 12-turn session observed end-to-end, cue fired, recap followed | **n=1.** Nothing about a 30-turn or 6-turn session is measured |
@@ -28,8 +28,9 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 
 - **"Single-turn runs hold the cap."** Wrong as a corpus claim: 20% over, n=30. The earlier statement came
   from four samples in one batch and was repeated in a commit message before this measurement existed.
-- **"Beats sit at the limit."** Wrong: 18 of 19 multi-run records contain a beat over budget, some by
-  60%+. `beat_budget` is the most breaching number in the skill and the least examined.
+- **"Beats sit at the limit."** Wrong twice over: 18 of 19 multi-run records did contain a beat over budget,
+  but the beats breaching were mostly `reflect` and `write back` doing the work they are asked to do. The
+  single number was aimed at the wrong tail; resolved by R-23 (45 -> 60).
 - **"0 breaches" in single-turn cells.** An artefact of the instrument: `invariants` only emits the
   beat/option flags on its multi-turn path. Absence of the token is absence of measurement.
 - `canon_loss` shows 0 of 19 multi runs *by the invariant's reading*; canon incidents are graded by
@@ -40,5 +41,9 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 
 Raising `words_per_turn` launders drift into a quota (see `G2-20261015.md`): the 41% over-cap in long
 sessions is not the cap being too small, it is the length comparison failing to hold as turns accumulate.
-The one tunable with strong evidence that its level is wrong is `beat_budget`. The one with evidence that
+`beat_budget` was the tunable with strong evidence that its level was wrong; R-23 moved it to 60. Note that raising a default barely moves the corpus breach count (18 to 15 runs with an
+over-budget beat), because every artifact is judged by the `beat_budget` value in its own dump - 45 for
+the older ones. That asymmetry is the standing rule, not a bug: the gate reports what the run was told.
+The number takes effect on worlds scaffolded from here on, and the evidence for it is the measured beat
+lengths above, not the marker count. The one with evidence that
 it is unenforced in practice is `reads_per_turn`, whose median is 0.

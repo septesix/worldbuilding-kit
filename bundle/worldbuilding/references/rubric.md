@@ -84,7 +84,7 @@ to pull it, `status: active` in `world/index.md`, and the last turn's `stop` bea
 
 `words_per_turn` alone produced turns of 171-211 words that every measurement called compliant-ish,
 because the total is easy to satisfy by shrinking one beat and inflating another. The per-beat cap is
-the one that changes behaviour: a 45-word `reflect` is a lecture no matter how short the `digest` was.
+the one that changes behaviour: a 90-word `reflect` is a lecture no matter how short the `digest` was.
 The beat whose words you may spend freely is the **question** - it is the only part the writer answers.
 
 **Check the trend, not just the total.** `words_per_turn` was measured in single turns, where 170 holds

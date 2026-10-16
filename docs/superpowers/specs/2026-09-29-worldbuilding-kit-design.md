@@ -129,7 +129,7 @@ tunables:
   words_per_turn: 170         # conversational words only; options and mandated appendices excluded (R-2, R-3, R-7, R-21)
   texture_cadence: 4          # every Nth turn belongs to texture, counted from targeted: in log.md (R-8)
   reads_per_turn: 3           # a scale tripwire, not a ration (R-6, and the correction beneath it)
-  beat_budget: 45             # words per labelled beat, so one beat cannot eat the turn (R-10)
+  beat_budget: 60             # words per labelled beat (R-10 set it at 45; R-23 measured what it was doing)
   option_words: 18            # per candidate option, counting the option text only (R-14a)
   memo_item_words: 45         # per memo bullet, not the memo's total (R-16)
   turns_per_session: 12       # the close trigger (R-10 note)
@@ -586,6 +586,22 @@ hold the cap" was n=4 folklore); multi/skill n=119, median 158, **41% over**; `b
 the scan weights and `lopsidedness_floor` remain **unmeasured** - no run has varied them. Cells where the
 instrument emits no flag for that mode are labelled not measured, never "0 breaches": silence is what the
 last four revisions were written to make impossible.
+
+**R-23 (2026-10-16, operator decision; supersedes R-10's number, not its reasoning)** - `beat_budget`
+default **45 -> 60**. R-10 was right that a turn can be compliant in total and monologuish in shape, but 45
+was chosen from the two fattiest beats in a handful of transcripts and never re-derived. Measured across the
+corpus by asking `invariants` to name every beat (cap forced to 1 in throwaway copies, so the instrument
+reports its own numbers rather than a recount): medians - `digest` 22, `question` 14, `target` 27, `stop` 9,
+`write back` 40, `reflect` 41. Share over the cap at 45: `reflect` 37%, `write back` 30%, `target` 20%, the
+three lean beats **0%**. So 45 was mostly flagging ordinary `reflect` and `write back` beats - the two the
+contract *requires* to carry content - while the monologues it existed to stop (p95 70-72, p99 104-107) were
+already rare. At 60: `reflect` 12%, `write back` 7%, `target` 3%, lean beats 0%, and any beat past ~90 still
+fails. Same shape, quieter, and no longer training the writer to shave the part that does the work.
+
+Cost if wrong: 60 lets a 55-word `reflect` pass, and four of those in one turn is a lecture. Accepted,
+because `words_per_turn` is the bound on exactly that sum and it is enforced per turn; the beat cap's job is
+the single-gulp shape, which 60 still catches. Note the two drift guards fired while this was being made
+(spec block and `docs/tunables.md` both still said 45) - which is the only reason they are consistent now.
 
 ## Open items (no decision taken)
 

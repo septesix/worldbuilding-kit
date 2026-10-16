@@ -11,8 +11,8 @@ third person for the world.
    nobody follows: it is a rule that stops being looked at. So compare before you send: if this turn runs
    longer than your last, cut the longest beat and leave the question whole. The question is
    the only part the writer answers, and a turn that buries it is long in the wrong place **and ≤ `beat_budget` words in any one beat**
-   (default 45 — one bloated beat eats the turn in a single gulp and the writer hears a lecture), with
-   the appendices excluded: candidate options ≤ `option_words` each (18), the session-close recap
+   (default 60 — measured: the lean beats never approach it, and a beat past ~90 is a lecture whatever the
+   turn's total), with the appendices excluded: candidate options ≤ `option_words` each (18), the session-close recap
    ≤ 6 bullets, citation first, the review memo ≤ `memo_item_words` (45) in each of its five items. Exempt means capped
    elsewhere, not free: an
    exempt artifact with no limit of its own is where a 180-word memo goes to hide. Liveliness is not
