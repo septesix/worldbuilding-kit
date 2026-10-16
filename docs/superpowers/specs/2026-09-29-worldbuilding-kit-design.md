@@ -2,8 +2,14 @@
 
 **Version:** 0.1.0
 **Date:** 2026-09-29 (host clock)
-**Status:** approved for implementation planning
+**Status:** living document. The body below carries the state as of R-22; where a paragraph and a
+later revision disagree, the revision wins and the paragraph has been updated or marked.
 **Owner:** septesix
+
+**Implementation state (2026-10-15):** guidance key `5e29a642` · HEAD `ddb8976` · suite 197/0.
+Behavioural claims are keyed to the guidance hash, not to a commit: `{cat SKILL.md; cat references/*.md;
+cat assets/*.md;} | cksum` — editing any shipped sentence invalidates the runs certified under it.
+Where each tunable's number came from, and which modes have evidence at all: `docs/tunables.md`.
 
 ## 1. Intent
 
@@ -94,20 +100,23 @@ A turn is four beats. Missing a beat makes the turn malformed.
 |---|---|
 | **1 Digest** | ≤3 lines: pillar thin/thick, entity count, open-thread count, "since last session". Names the world and its path |
 | **2 Target** | The single gap chosen by §4, and why it is interesting — must cite an existing entity by name |
-| **3 Question** | **Exactly one** question, plus 2–3 candidate answers labelled `steady / sharp / strange` (faithful · dangerous · weird), each ≤18 words |
+| **3 Question** | **Exactly one** question, plus 2–3 candidate answers labelled `steady / sharp / strange` (faithful · dangerous · weird), each ≤ `option_words` (default 18 — R-14a) |
 | **4 Stop** | Wait. The writer's move is always a single reply |
 
 The turn *after* an answer begins with two beats of its own:
 
 - **Write back** — append canon and update `index.md` **before** any new question. A crash costs
-  at most one exchange. Facts are declarative bullet lines, never dialogue.
+  at most one exchange. Facts are declarative bullet lines, never dialogue. This is where the ledger is on
+screen, so it is also where the arithmetic that needs it is read and applied — cadence window, consecutive
+pillar, and the length comparison against the previous turn (R-19).
 - **Reflect** — state one consequence or connection the writer did not say. This beat is where
   "surprising" lives; it is structure, not aspiration.
 
 ### 3.1 Session close
 
 When the writer ends a session (or 12 turns pass without one), append to `log.md` and show in
-chat: 3–6 bullets of **what we just decided**, then **the next thread I would pull and why**.
+chat: 3–6 bullets of **what we just decided**, each **citation first** (R-21), then **the next thread I
+would pull and why**.
 Closing the laptop mid-novel must cost nothing.
 
 ### 3.2 Tunables
@@ -117,14 +126,23 @@ there is no command surface.
 
 ```yaml
 tunables:
-  words_per_turn: 160      # excluding candidate options — see revision R-2
-  texture_cadence: 4       # every Nth turn must be a texture question
-  sarcasm: on
+  words_per_turn: 170         # conversational words only; options and mandated appendices excluded (R-2, R-3, R-7, R-21)
+  texture_cadence: 4          # every Nth turn belongs to texture, counted from targeted: in log.md (R-8)
+  reads_per_turn: 3           # a scale tripwire, not a ration (R-6, and the correction beneath it)
+  beat_budget: 45             # words per labelled beat, so one beat cannot eat the turn (R-10)
+  option_words: 18            # per candidate option, counting the option text only (R-14a)
+  memo_item_words: 45         # per memo bullet, not the memo's total (R-16)
+  turns_per_session: 12       # the close trigger (R-10 note)
+  sarcasm: on                 # declared; nothing in the guidance reads it yet - see Open items
   weight_gap: 1.0
   weight_hook: 1.0
   weight_contradiction: 1.5
-  lopsidedness_floor: 0.6  # never same pillar twice running if another scores ≥ this ratio
+  lopsidedness_floor: 0.6     # never same pillar twice running if another scores ≥ this ratio
 ```
+
+`gap_weight` and `hook_weight` are **score terms**, not tunables: the weights above multiply them. The
+table in `assets/index-template.md` is the single source of truth for these defaults, and `check.sh` now
+fails if this block disagrees with it (R-22).
 
 ## 4. Choosing what to ask
 
@@ -186,7 +204,8 @@ Dry archivist, warmed up. The world is treated as already real and merely under-
 *"Severin has a reason; you simply haven't told anyone yet."* Second person for the writer's
 ideas, third person for the world.
 
-1. ≤160 words per turn (candidate options excluded). Jokes may appear anywhere in the turn,
+1. ≤ `words_per_turn` words per turn (default 170; candidate options and mandated appendices excluded).
+   Longer than the last turn? Cut a beat rather than a comma (R-19). Jokes may appear anywhere in the turn,
    including inside the question.
 2. Sarcasm is permitted **when warranted**, defined as: it lands on the world's absurdity, an
    internal contradiction, or a thread the world keeps dodging. Never on the writer's idea,
@@ -206,7 +225,8 @@ turn) · **Connection** (links two entities established ≥3 sessions apart that
 joins) · **Cost** (a candidate answer that makes the writer give something up) · **Discovery**
 (their own forgotten detail, quoted back).
 
-Each turn appends `provoked: <type>` to its `log.md` line. **Three consecutive turns of one type
+Each turn appends `provoked: <types>` — one or more of the five, plus `review` on a memo turn (R-18) — to
+its machine line. **Three consecutive turns of one type
 forces a switch.** `review` reports the distribution.
 
 ## 7. Data model
@@ -216,7 +236,7 @@ forces a switch.** `review` reports the distribution.
   index.md                  # DERIVED registry + scoreboard
   encyclopedia/<slug>.md    # one file per entity
   threads.md                # open-question ledger (authoritative for what is unresolved)
-  log.md                    # append-only session recaps
+  log.md                    # append-only recaps + exactly one machine line per turn that happened (R-9, R-18, R-20)
 ```
 
 - **`index.md`** — frontmatter (`world`, `sessions`, `last_date`, `tunables`) — see revision R-1, no version field lives here,
@@ -479,3 +499,109 @@ place, so the memo is measured rather than forgiven: the longest on file was 203
 not a glance, and now fails. Cost if wrong: 120 words may cut a memo that legitimately needs to cite
 five contradictions; the knob is a tunable, and the item list is capped at five, so pressure resolves
 into "cite less, name the thread", not into a longer exemption.
+**Superseded on the number and the shape by R-16; the principle stands.**
+
+---
+
+## Revisions R-16 … R-22 (folded into the spec on 2026-10-15)
+
+These decisions were made, shipped, and measured, but recorded only in commit messages. A reader asking
+"what does the spec still require?" got stale answers from them, which is the reason they are here now.
+
+**R-16 (2026-09-30, supersedes R-15's number and shape; `d4a5f6d`, `fae5099`, `ff87b5b`)** — the memo cap
+moves from the **total** to the **bullet**: `memo_item_words: 45`. Chain: 120 set by feel → the first
+legitimate memo certified under it ran 130 and failed → measured across every complete memo on file
+(61, 91, 107, 109, 130, 203), the total ceiling went to 150 → then to per-item 45, because a total cap
+lets one item become a paragraph while the other four stay thin, and the failure mode is per item. Worst
+per-item value on file 60, four items over. Cost if wrong: five items at 45 can total 225, well above the
+150 the total cap allowed - accepted, because the item is the shape that bloats and the total is only its
+consequence. Recorded alongside: **files are judged by the limits recorded in their own dumps**, so the
+130-word memo still reads FAIL under 120 in the historical transcript while passing today's default. That
+asymmetry is deliberate - the gate reports what the run was told, not what was decided afterwards.
+
+**R-17 (2026-10-13 → 10-15, instruments; `9e7932a`, `9ff22ec`, `3aaee19`)** — the graded artifact must not
+contain the grader's own words. One defect, three instances: `NOT-GRADED` shared an exit code with a real
+finding; the review failure message contained the literal marker whose absence it was reporting; and
+`canoncheck` printed `CANON-LOSS: … rm encyclopedia/lighthouse-place.md` for a run that deleted nothing -
+the string was inside a copy of canoncheck's own docstring, which the model had read off disk, in prose.
+Decisions: verdicts are appended **after** the artifact closes, under a reserved `## harness verdicts`
+heading; exit codes are typed (findings < 32, `64` = not graded, `128` = crash); aggregate gates
+**re-derive** verdicts by running the graders rather than grepping stored verdict text, which was grading
+by citation; markers are field-delimited so mentioning `review` cannot reset a counter; `canoncheck`
+separates **act** (a string under a `command` key) from **mention** (prose → `CANON-NOTE`, no verdict
+change), stays loud when it cannot parse, and prints `CANON-UNPARSED` instead of swallowing failures.
+The one genuine deletion in the corpus is caught by the count witness, which is untouched. Suite 170 →
+184 → 187 on the way. See `evidence/CANON-20261015.md`.
+
+**R-18 (2026-10-14, gate finding; `b366677`)** — the `provoked:` field had **three** documented shapes:
+`SKILL.md` said singular, `assets/index-template.md` listed an eight-name enum including `constraint` and
+`stake` (which appear **zero** times in real logs), and `voice.md` said ≥1 of five. Canonical now, stated
+in all four shipped files: `- turn: <n> · provoked: <types> · targeted: <pillar>`, where `<types>` is one
+or more of the five engagement types plus `review` on a memo turn. Real corpus before the fix: 12×
+`provoked: review`, 3× the list form. Guards are both-sided - reverting any one file fails, and trimming
+the phrase that makes it a rule also fails - because the ambiguity had survived in three files with the
+suite green. Word budget note: one trim broke the file-level append-only sentence ("never delete **one**
+under `world/`" - the pronoun is what makes it about files); the trim was reverted, not the guard.
+
+**R-19 (2026-10-14, `7e81eb0`, `e12ece4`)** — the length rule is made **comparative** and **moved** to the
+step that has the ledger on screen; `words_per_turn` stays **170**. The failure was drift, not the number:
+a five-turn retcon measured 171, 242, 195, 199, 250 (mean 211, 5/5 over cap) with a cap that bites only if
+someone compares. After the change: 192, 153, 165, 173, 157 (mean 168, 2/5 over). Raising the cap instead
+would launder drift into a quota, so the rule reads "longer than last turn? cut a beat", in `SKILL.md`'s
+write-back bullet with the reason in `voice.md`. The two variety checks (cadence, consecutive pillar) moved
+out of `## Scoring` into the same bullet - nothing duplicated, `Scoring` now names neither - and the guard
+**pins position**, not wording. Known and not yet closed: at twelve turns the same rule measures mean 184
+with 10/12 over cap. Placement fixed the drift; the length problem is a length problem.
+
+**R-20 (2026-10-15, `5117840`)** — **a machine line records a turn; it does not reconstruct one.** Found
+by a rule that could not be evaluated: the cadence window saw eight lines for five turns, numbered 5–12,
+three annotated "late entry", naming pillars no turn had targeted. The cause was in the prop, not the
+model: the fixture's `log.md` has four sessions and **zero** machine lines while its index claims twelve
+turns per session, and a resumed run filled that hole by inventing rows - permanently, in an append-only
+file, where every window rule then reads them as fact. The rule ("one line per turn that happened, none
+for turns you did not write") is now stated in three shipped files; the fixture's hole is **deliberately
+kept**, because a world with a gap in its ledger is what the skill actually meets. Verification on the
+same scenario: 8 lines for 4 turns → 5 lines for 5; numbering 5–12 → 1–5; late entries 3 → 0; pillars in
+the ledger that no turn named → 0. This is why G2/G3 are provisional: a window rule is arithmetic over
+lines, and lines that were never turns make a clean verdict a lie.
+
+**R-21 (2026-10-15, `3aaee19`)** — an appendix exemption needs a **shape**, not just a promise. Four
+shipped files said the close recap is exempt from `words_per_turn` and none said what a recap bullet looks
+like; the instrument that grants the exemption keys on bullets that open with their source. Identical
+content, six bullets, ~90 words: citation last → 135 turn words counted, 0 exempt; citation first → 9
+counted, 6 exempt. The whole difference was where a comma sat. §3.1 now states "citation first" in
+`SKILL.md`, `voice.md` and `rubric.md`, guarded on both sides (the trailing form must still count as
+prose, or a counter that exempts everything would also "pass"). Verified in a 12-turn session: all six
+bullets took the documented shape and the close turn counted 125 words with 6 exempt.
+
+**R-22 (2026-10-15, `1475ab9`, `ddb8976`)** — every enforced tunable carries a **provenance row**, and
+**a cap may not be applied to a mode that is absent from its sample**. Three numbers in this spec's history
+(120 in R-2, 160→170 in R-7, 120 in R-15) were set just above the largest thing measured at the time;
+`words_per_turn: 170` in particular came from four single-turn runs and was then applied to sessions of
+twelve. `tools/tunable_provenance.py` re-runs the graders over the whole corpus, judging each run by the
+caps recorded in its own dump. What it says: single/skill n=30, median 125, **20% over** (so "single turns
+hold the cap" was n=4 folklore); multi/skill n=119, median 158, **41% over**; `beat_budget` breached in
+**18 of 19** multi-run records (observed beats 47–74) - the most-breached, least-examined number here;
+`reads_per_turn` median **0** reads per turn, so that budget documents a worry rather than a behaviour;
+the scan weights and `lopsidedness_floor` remain **unmeasured** - no run has varied them. Cells where the
+instrument emits no flag for that mode are labelled not measured, never "0 breaches": silence is what the
+last four revisions were written to make impossible.
+
+## Open items (no decision taken)
+
+Verified against the shipped bundle on 2026-10-15; these are spec requirements with no implementation and
+no decision, listed so the next reader does not have to rediscover them:
+
+1. §2.2 `new` mode's **"you pick" branch** - deal three premises off different genre assumptions - is
+   absent from all guidance. A writer who declines to choose gets the same premise question.
+2. §3.2 **`sarcasm: on`** is declared in the template and read by nothing; `voice.md`'s sarcasm rule is
+   unconditional, so turning it off changes no documented behaviour. The only tunable with no reader.
+3. §7 **slug collision** (append the kind: `lady-severin-person`) is stated nowhere; the convention exists
+   only because the fixture's files happen to be named that way, so it is a modelling cue, not a rule.
+4. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from
+   the root next time - is not in the kit; nor is §2.1's warning that project skills are reviewed by pi's
+   trust prompt (the kit only says they "now load from here"). §8's "ask if ambiguous at depth" for several
+   `world/` trees is likewise unimplemented: nearest wins and the path is named, but nothing asks.
+5. §9's **voice micro-test** (5 fresh-context samples of one digest turn, variance read by hand) was never
+   run - plan Task 9's `evidence/voice-microtest.md` does not exist. The question it was for got answered
+   by full scenario runs instead, at roughly twelve times the cost.

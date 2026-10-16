@@ -101,6 +101,82 @@ templates(){
   else
     no "docs/tunables.md missing - tunables would be enforced with no recorded origin"
   fi
+  # The spec used to carry defaults the bundle had already moved past - three of them, in the section a
+  # newcomer reads first. A decision recorded only in a commit message is one that gets re-litigated
+  # from stale text, so the two files are now compared key by key.
+  spec=$(ls "$REPO"/docs/superpowers/specs/*.md 2>/dev/null | head -1)
+  if [ -f "$spec" ]; then
+    drift=$(python3 - "$spec" "$B/assets/index-template.md" <<'PYDRIFT'
+import re, sys
+def block(path):
+    """The `tunables:` mapping in a file: keys at line start, comments ignored.
+
+    The first version ran a key:value regex over the whole block, so a comment reading "a tripwire,
+    not a ration: needing more" contributed a key called `ration` and the check reported a drift that
+    existed only in its own parser.
+    """
+    t = open(path).read()
+    m = re.search(r"tunables:\n((?:[ \t]+\S.*\n)+)", t)
+    if not m:
+        return None
+    out = {}
+    for line in m.group(1).split("\n"):
+        line = line.split("#")[0].rstrip()
+        km = re.match(r"^\s*([a-z_]+):\s*([^\s].*)$", line)
+        if km:
+            out[km.group(1)] = km.group(2).strip()
+    return out
+a, b = block(sys.argv[1]), block(sys.argv[2])
+if a is None or b is None:
+    print("no tunables block found in the " + ("spec" if a is None else "index template")
+          + " - the comparison silently stopped being possible")
+    sys.exit()
+bad = []
+for k in sorted(set(a) | set(b)):
+    if k not in a:
+        bad.append(k + ": shipped, absent from the spec")
+    elif k not in b:
+        bad.append(k + ": in the spec, not shipped")
+    elif a[k] != b[k]:
+        bad.append(k + ": spec says " + a[k] + ", bundle ships " + b[k])
+print("; ".join(bad))
+PYDRIFT
+    )
+    if [ -z "$drift" ]; then
+      ok "spec defaults match the shipped index template (no drift from git-only decisions)"
+    else
+      no "spec and bundle disagree on tunables: $drift"
+    fi
+  fi
+  # The same failure mode one file over: a provenance table whose numbers were typed from memory.
+  # It quoted lopsidedness_floor 0.34 for a tunable that ships 0.6 - inside a document whose entire
+  # purpose is to stop numbers becoming folklore.
+  val=$(python3 - "$REPO/docs/tunables.md" "$B/assets/index-template.md" <<'PYVAL'
+import re, sys
+def tmpl(path):
+    t = open(path).read()
+    m = re.search(r"tunables:\n((?:[ \t]+\S.*\n)+)", t)
+    out = {}
+    for line in (m.group(1).split("\n") if m else []):
+        line = line.split("#")[0].rstrip()
+        km = re.match(r"^\s*([a-z_]+):\s*([^\s].*)$", line)
+        if km:
+            out[km.group(1)] = km.group(2).strip()
+    return out
+t = tmpl(sys.argv[2])
+doc = open(sys.argv[1]).read()
+bad = []
+for k, v in re.findall(r"`([a-z_]+):?\s?([0-9][0-9.]*)`", doc):
+    if k in t and t[k] != v:
+        bad.append(k + ": table says " + v + ", bundle ships " + t[k])
+print("; ".join(sorted(set(bad))))
+PYVAL
+  )
+  if [ -z "$val" ]; then
+    ok "docs/tunables.md quotes the shipped defaults, not remembered ones"
+  else
+    no "provenance table disagrees with the shipped defaults: $val"
+  fi
   local ln; ln=$(awk '/^## Entities/{print NR; exit}' "$T/index-template.md"); [ "$ln" -lt 60 ] && ok "entity table at line $ln (<60)" || no "entity table at line $ln, not <60"
   grep -q '^## Canon' "$T/entity-template.md" && ok "entity template has Canon" || no "entity template lacks ## Canon"
   grep -q 'proposed:' "$T/entity-template.md" && ok "entity template shows provenance" || no "no proposed: provenance"
