@@ -130,7 +130,9 @@ tunables:
   texture_cadence: 4          # every Nth turn belongs to texture, counted from targeted: in log.md (R-8)
   reads_per_turn: 3           # a scale tripwire, not a ration (R-6, and the correction beneath it)
   beat_budget: 60             # words per labelled beat (R-10 set it at 45; R-23 measured what it was doing)
-  option_words: 18            # per candidate option, counting the option text only (R-14a)
+  option_words: 19            # per candidate option, counting the option text only (R-14a set 18;
+                              # R-26 moved it to the measured ceiling)
+  sketch_words: 25            # per line of a reaction-mode sketch block, six lines to a block (R-25)
   memo_item_words: 45         # per memo bullet, not the memo's total (R-16)
   turns_per_session: 12       # the close trigger (R-10 note)
   sarcasm: on                 # declared; nothing in the guidance reads it yet - see Open items
@@ -478,7 +480,7 @@ the interview aims at are intact. The band is also the anti-volume guard: 9 enti
 bonus.
 
 **R-14 (2026-09-30, gate findings: option breach + I5)** — two changes, one correction. (a)
-`option_words` (default 18) becomes a tunable counted against the option's text; the harness had been
+`option_words` (default 18; 19 since R-26) becomes a tunable counted against the option's text; the harness had been
 adding the `- steady —` markup as three words per line, which manufactured every "20-word option"
 finding - measured properly, the worst option in twelve runs is 17. (b) `review` mode is specified where
 it can fire and checked where it can fail: the trigger lives in the per-turn bookkeeping line ("at 3
@@ -627,6 +629,29 @@ proves a mechanism reachable, never reached. So `tests/golden_verdicts.tsv` reco
 whether the digits appear somewhere in the file. The fixed graders read **18 of those 213 verdicts
 differently**; the rules themselves are hoisted into `harness_markers.py`, since three of the four
 defects existed in two places at once. See `evidence/GRADER-20261016.md`.
+
+**R-25 (2026-10-16, decision: give the sketch its own tunable)** - `sketch_words: 25`, six lines to a
+block. R-24 closed the laundering hole by refusing to exempt slug bullets outside a close, which was
+correct about the instrument and wrong about the behaviour: reaction mode is *mandated* ("sketch 6
+lines"), so the rule now said the beat the guidance asks for must fit inside the conversational cap. It
+does not fit — the one sketch in the archive is turn 5 of `cadence-skill-multi-20261015T035948Z.md`,
+162w counted where the same words read 291w. The honest shape is what `memo_item_words` and
+`option_words` already are: an appendix with a bound of its own. So a sketch block (four or more
+consecutive bullets that each open with a bare `slug`, in a turn that is not a close) is exempt from
+`words_per_turn` and bounded per line by `sketch_words` and in count by six, flagged as an appendix
+breach (bit 2) either way. Level: measured max 20w across six lines, so 25 is headroom over a sample of
+one block, stated as provisional rather than dressed up as a distribution. Cost if wrong: a fat sketch
+line passes that would have been caught as prose, and six of them is 150 words of appendix in one turn —
+bounded by the count rule, and by `beat_budget` for any line that carries a beat label.
+
+**R-26 (2026-10-16, decision: 19 words is fine)** - `option_words: 18 -> 19`, and the reading is the
+per-option one. The two measurements that disagreed were the length column (longest option in a turn) and
+the flag (any option, anywhere); the column said max 18 and 0% over while 3 of 19 runs carried
+`option 19w > option_words 18`. Measured across all 318 options in the multi/skill corpus: min 7, median
+13, p90 17, p95 17, p99 19, max 19 — 19 is the ceiling the behaviour actually has, so the cap sits on it
+and 0% over is now a true statement rather than an artefact of which column was read. Cost if wrong: a
+20-word option passes unnoticed; that is the direction this number was raised in, and `words_per_turn`
+still bounds the turn the options live in.
 
 ## Open items (no decision taken)
 

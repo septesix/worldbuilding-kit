@@ -5,7 +5,7 @@
 
 Exit is a bitmask, and shell status is ONE BYTE, so nothing above 128 exists:
   1  a turn exceeded words_per_turn          16  texture_cadence window missed
-  2  an appendix limit (options > option_words, recap > 6, close contract, scoring)   32  provocation
+  2  an appendix limit (options > option_words, recap > 6, sketch lines, close contract, scoring)   32  provocation
   4  not exactly one question in a turn      64  same pillar in CONSECUTIVE turns
   8  entity reads over reads_per_turn        128 the instrument crashed (never a finding)
 
@@ -214,9 +214,14 @@ def main():
                       or (RECAP.match(l) and hm.close_context(body, k, i == len(ts) - 1, len(ts))))]
         memo_l, body_rest = wc.memo_split(body)          # the memo is an appendix, not a monologue
         opts = [l for l in body_rest if OPT.match(l)]
+        # A sketch block is reaction mode's appendix: exempt from words_per_turn, bounded per line and
+        # in count by its own tunables. Detected on body_rest so memo lines cannot join the run.
+        sk_idx = hm.sketch_lines(body_rest, i == len(ts) - 1, len(ts))
+        sketch = [l for k, l in enumerate(body_rest) if k in sk_idx]
         memo_w = [wc.wc_words(l) for l in memo_l if wc.MEMO_ITEM.match(l)]
         memo_w = memo_w or [sum(wc.wc_words(l) for l in memo_l)]
-        prose = [l for l in body_rest if l not in opts and l not in recap]
+        prose = [l for k, l in enumerate(body_rest)
+                 if k not in sk_idx and l not in opts and l not in recap]
         # matched line by line: joining the beats into one string would break the ^ anchor and read
         # the whole turn as one beat
         fat = []
@@ -255,11 +260,17 @@ def main():
         # artifact with no limit of its own is only a hiding place for length
         if max(memo_w) > MEMO_CAP:
             bad.append(f'memo item {max(memo_w)}w > memo_item_words {MEMO_CAP}'); rc |= 2
-        if any(wc.option_words(l) > option_cap(text) for l in opts):
+        if any(wc.option_words(l) > wc.option_cap(text) for l in opts):
             bad.append('option %dw > option_words %d'
-                       % (max(wc.option_words(l) for l in opts), option_cap(text)))
+                       % (max(wc.option_words(l) for l in opts), wc.option_cap(text)))
             rc |= 2
         if len(recap) > 6: bad.append('recap>6'); rc |= 2
+        # the sketch is an appendix with its own ceiling, so it is checked here rather than as prose:
+        # six lines of about 19 words each is what reaction mode writes, and it is not a 291-word turn
+        sk_w = [wc.wc_words(l) for l in sketch]
+        if len(sketch) > hm.SKETCH_MAX: bad.append('sketch %d lines > 6' % len(sketch)); rc |= 2
+        if sk_w and max(sk_w) > wc.sketch_cap(text):
+            bad.append('sketch %dw > sketch_words %d' % (max(sk_w), wc.sketch_cap(text))); rc |= 2
         # the beat cap is the second half of the word rule: a turn inside words_per_turn can still be
         # one 90-word monologue beat, and that is the shape that stops sounding like conversation
         for nm, bw in fat: bad.append(f'{nm} {bw}w > beat {CAP}'); rc |= 1

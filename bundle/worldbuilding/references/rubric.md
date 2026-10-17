@@ -80,6 +80,19 @@ and a bullet whose source sits at the end of a 40-word sentence cannot be told a
 the reader, or by the counter that grants the exemption. The next thread named with the reason
 to pull it, `status: active` in `world/index.md`, and the last turn's `stop` beat unanswered.
 
+### The sketch is an appendix too
+
+When reaction mode fires - over half the last eight turns wrote `proposed:` - the interview has stopped
+producing anything, so stop asking and write six lines: six things the world now contains, each opening
+with the `file` or `T-num` it belongs to, then ask what is wrong with them.
+
+Six lines of about nineteen words is what runs actually produce, so the shape carries its own bound
+instead of borrowing the turn's: each line ≤ `sketch_words`, and the block does not count against
+`words_per_turn`. The exemption is exactly why the block stays at six. Nine sketch bullets read like a
+second index, and an appendix that keeps growing becomes the document - with no citation trail, because
+nobody is answering a question any more. Seven lines is the first thing to question; more than that is
+the writer's decision, and belongs in `log.md` as a `decided:` line.
+
 ## Word budget: why the beats, not the turn
 
 `words_per_turn` alone produced turns of 171-211 words that every measurement called compliant-ish,

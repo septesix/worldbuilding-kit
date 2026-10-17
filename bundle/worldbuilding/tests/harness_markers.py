@@ -94,6 +94,34 @@ _WRAP_CUE = re.compile(r"(?i)\b(that'?s all|that is all|wrap (it|things) up|done
 SESSION_TURNS = 12
 
 
+# a sketch block: four or more consecutive bullets that each open with a bare `slug`. This is what
+# reaction mode writes when the interview stalls, and it is an appendix like the recap - but it is not
+# a close, so nothing may exempt it by shape alone. Six lines is the instruction; more than six stops
+# being a sketch and starts being a parallel document.
+SKETCH_MIN = 4
+SKETCH_MAX = 6
+_SKETCH_BULLET = re.compile(r'^\s*[-*] +(`[\w-]+`)')
+_OPTIONISH = re.compile(r'^\s*[-*]?\s*\d+[.)]\s')
+
+
+def sketch_lines(lines, is_last=False, n_turns=0):
+    """Indices of the bullets that form a sketch block in this turn block."""
+    out, run = set(), []
+    for i, l in enumerate(lines):
+        keep = (_SKETCH_BULLET.match(l) and not _OPTIONISH.match(l)
+                and not is_writer_echo(lines, i)
+                and not close_context(lines, i, is_last, n_turns))
+        if keep:
+            run.append(i)
+        else:
+            if len(run) >= SKETCH_MIN:
+                out.update(run)
+            run = []
+    if len(run) >= SKETCH_MIN:
+        out.update(run)
+    return out
+
+
 def close_context(lines, i, is_last=False, n_turns=0):
     """Is line i inside a session close? Three ways: the turn announced it, the writer asked for the
     wrap-up on the final turn, or the run reached a session's worth of turns and this is the last one.

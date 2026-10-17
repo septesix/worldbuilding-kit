@@ -282,23 +282,42 @@ method(){
   else
     no "recap exemption unverifiable: bullets recognised=${seen:-0}/6, turn words counted=${counted:-?} (want 6 and <40)"
   fi
-  # The axis F1 turned up, which the pair above cannot see: the SAME citation-first bullets with no close
-  # announced. That is reaction mode, and it is prose. If these are exempt too, the exemption is still
-  # keyed on shape and the fix is cosmetic.
-  rcg=$(mktemp)
-  { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
-    echo 'Over half the last eight turns wrote proposed, so here are six sketch lines about the lock.'
-    for i in 1 2 3 4 5 6; do
-      printf -- '- `bridge-tolls-%d`, `T-014` — the Council did not build the lock and the ledger predates it by forty years of tide tables and quiet forgery\n' "$i"
-    done
-    echo; echo '## files after run'; } > "$rcg"
-  outg=$(python3 "$B/tests/wordcount.py" "$rcg" 170 2>&1); rm -f "$rcg"
-  seeng=$(echo "$outg" | grep -oE '[0-9]+ recap bullets' | grep -oE '[0-9]+' | head -1)
-  countedg=$(echo "$outg" | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+' | head -1)
-  if [ "${seeng:-0}" = 0 ] && [ "${countedg:-0}" -gt 60 ]; then
-    ok "the same bullets, no close announced, are prose (${countedg}w counted, 0 exempt) - the gap F1 closed"
+  # R-25: reaction mode's six lines are an appendix with a bound of their own - not turn prose, and not
+  # an exemption granted by shape (that was F1, where the same six lines either vanished from the cap or
+  # counted against it depending on where the citation sat). Three sides, all machine-checked: a clean
+  # sketch is exempt from words_per_turn and unflagged; one fat line fails sketch_words; seven lines
+  # fails the count. The fat-line and long-block cases must ALSO stay out of the turn count, or the fix
+  # just moved the leak.
+  skmk(){ { echo "# T"; echo '## transcript'; echo; echo '## turn 1'
+      echo 'One short question about the lock.'
+      for i in $(seq 1 "$2"); do
+        printf -- '- `bridge-tolls-%d` — the Council did not build the lock and the ledger predates it by tide tables%s\n' "$i" "$3"
+      done
+      echo; echo '## files after run'; } > "$1"; }
+  ska=$(mktemp); skb=$(mktemp); skc=$(mktemp)
+  skmk "$ska" 6 ''
+  skmk "$skb" 6 ', and the sexton rang the wrong bell on purpose, which nobody had authorised at all'
+  skmk "$skc" 7 ''
+  oa=$(python3 "$B/tests/wordcount.py" "$ska" 170 2>&1); ra=$?
+  ob=$(python3 "$B/tests/wordcount.py" "$skb" 170 2>&1); rb=$?
+  oc=$(python3 "$B/tests/wordcount.py" "$skc" 170 2>&1); rc=$?
+  rm -f "$ska" "$skb" "$skc"
+  wa=$(echo "$oa" | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  wb=$(echo "$ob" | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  if [ "$ra" = 0 ] && [ "$(echo "$oa" | grep -c '6 sketch lines')" = 1 ] && [ "${wa:-999}" -lt 40 ]; then
+    ok "a clean sketch is an appendix, not prose (6 lines, ${wa}w counted against the turn cap, rc=0)"
   else
-    no "recap exemption is still shape-keyed: ${seeng:-?} exempt, ${countedg:-?}w counted (want 0 exempt and >60)"
+    no "sketch path wrong: rc=$ra lines=$(echo "$oa" | grep -oE '[0-9]+ sketch lines' | head -1) counted=${wa:-?} (want rc=0, 6 lines, <40)"
+  fi
+  if echo "$ob" | grep -q 'over sketch_words' && [ $((rb & 2)) = 2 ] && [ "${wb:-999}" -lt 60 ]; then
+    ok "a 26-word sketch line fails its own bound (${wb}w counted for the turn, so the bound is real)"
+  else
+    no "fat sketch line went unmeasured (rc=$rb, counted=${wb:-?}) - sketch_words is decoration"
+  fi
+  if echo "$oc" | grep -q 'sketch > 6' && [ $((rc & 2)) = 2 ]; then
+    ok "a seven-line sketch is flagged as a count breach, not as prose"
+  else
+    no "seven-line sketch not flagged by count (rc=$rc) - the block has no ceiling"
   fi
   # F2, both sides: the harness echo is excluded because of where it sits, not because of the token it
   # starts with. Prose that merely begins with that token must still be counted, or the cap is opt-out.

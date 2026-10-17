@@ -7,7 +7,10 @@ tunables:
   texture_cadence: 4
   reads_per_turn: 3   # a tripwire, not a ration: needing more means you are scoring from files
   beat_budget: 60     # words per labelled beat; measured, the fat lives in reflect and write back
-  option_words: 18    # per candidate option, counting the option, not the '- steady -' markup
+  option_words: 19    # per candidate option, counting the option, not the '- steady -' markup: the
+                      # corpus tops out here (318 options, p99 19), so a breach means a new shape
+  sketch_words: 25    # per line of a reaction-mode sketch, six lines to a block. Measured: the one
+                      # sketch in the archive is six lines of 17-20 words; headroom is provisional
   memo_item_words: 45 # per memo bullet, not the memo's total: one item turning into a paragraph is the
   turns_per_session: 12   # the close trigger; counted from the machine lines in log.md
   sarcasm: on

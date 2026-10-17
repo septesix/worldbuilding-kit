@@ -91,6 +91,9 @@ G4-20261015.md	reviewcheck	64
 G6-20261015.md	wordcount	64
 G6-20261015.md	invariants	0
 G6-20261015.md	reviewcheck	64
+GRADER-20261016.md	wordcount	64
+GRADER-20261016.md	invariants	13
+GRADER-20261016.md	reviewcheck	64
 home-dir-skill-20260929T233415Z.md	wordcount	0
 home-dir-skill-20260929T233415Z.md	invariants	0
 home-dir-skill-20260929T233415Z.md	reviewcheck	0
@@ -118,7 +121,7 @@ pressure-wrapup-control-20260930T002248Z.md	reviewcheck	1
 pressure-wrapup-skill-20260929T232141Z.md	wordcount	0
 pressure-wrapup-skill-20260929T232141Z.md	invariants	0
 pressure-wrapup-skill-20260929T232141Z.md	reviewcheck	1
-pressure-wrapup-skill-20260930T023105Z.md	wordcount	1
+pressure-wrapup-skill-20260930T023105Z.md	wordcount	2
 pressure-wrapup-skill-20260930T023105Z.md	invariants	0
 pressure-wrapup-skill-20260930T023105Z.md	reviewcheck	1
 R23-20261016.md	wordcount	64

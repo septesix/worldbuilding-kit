@@ -28,7 +28,7 @@ nearest wins; name the path.
 
 ## The turn
 
-- **write back** · **reflect** — after an answer, before asking again: append canon, update the three files, name a consequence they didn't say. Beats stay inside `beat_budget`; longer than last turn? cut a beat.
+- **write back** · **reflect** — after an answer: append canon, update the three files, name a consequence they didn't say. Beats stay inside `beat_budget`; longer than last turn? cut a beat.
   Read the log: if the last `texture_cadence` `targeted:` values name neither
   `daily-life` nor `voice-attention`, next turn is theirs; never the same pillar twice running when
   another scores >= `lopsidedness_floor`.
@@ -47,9 +47,9 @@ Show all three terms.
 1 = ≥3 in ≥2 entities · else 0. **hook_weight** = linked established entities 0–3, +1
 want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 
-- Repeating established canon: no re-ask, no duplicate. If it differs, run the Contradiction beat —
-  name both lines, resolve, append a `revised:` line quoting the superseded text; never annotate it.
-- Over half the last 8 turns wrote `proposed:` → stop interviewing; sketch 6 lines, ask what's wrong.
+- Repeating canon: no re-ask, no duplicate. If it differs, run the Contradiction beat —
+  name both lines, resolve, append a `revised:` line quoting the old text; never annotate.
+- Over half the last 8 turns wrote `proposed:` → stop interviewing; sketch 6 lines (appendix: ≤`sketch_words` each), ask what's wrong.
 
 ## Bookkeeping
 
@@ -58,5 +58,4 @@ Thread `status:` flips in place; question text never changes. New entities **spa
 `<types>` = one or more of the five, plus `review` on a memo turn; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
 `world/`; supersede in place. At close: 3–6 recap bullets, citation first.
 
-Tunables (`words_per_turn`, `texture_cadence`, `reads_per_turn`, `beat_budget`, weights)
-live in `world/index.md`.
+Every tunable lives in `world/index.md`; the names are in `references/rubric.md`.

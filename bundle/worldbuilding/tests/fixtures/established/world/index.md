@@ -7,7 +7,8 @@ tunables:
   texture_cadence: 4
   reads_per_turn: 3
   beat_budget: 60
-  option_words: 18
+  option_words: 19
+  sketch_words: 25
   memo_item_words: 45
   turns_per_session: 12
   sarcasm: on

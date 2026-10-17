@@ -63,6 +63,22 @@ def wc_words(line):
     return len(re.findall(r"[\w'’]+", line))
 
 
+def _tunable(text, key, default):
+    """A limit the world itself carries, read from the artifact's label or dumped index."""
+    m = re.search(key + r':\s*(\d+)', text)
+    return int(m.group(1)) if m else default
+
+
+def option_cap(text):
+    # this used to be a literal 18 in the flag test, which meant a world that changed option_words
+    # moved one gate and not the other
+    return _tunable(text, 'option_words', 18)
+
+
+def sketch_cap(text):
+    return _tunable(text, 'sketch_words', 25)
+
+
 def measure(path):
     """(worst turn words, option lengths, recap count, memo item lengths, memo cap, turns graded,
     turns skipped) for one artifact, or None when nothing in it could be read.
@@ -88,6 +104,8 @@ def measure(path):
         memo = [l for l in memo if not OPT.match(l)]
         turn, opts, recap = [], [], []
         last_turn = (bi == len(bodies) - 1)
+        sketch = []
+        sk_idx = hm.sketch_lines(lines, last_turn, len(bodies))
         for li, l in enumerate(lines):
             # The harness echoes the scripted turn as the first line under `## turn N`. That echo, and
             # only that echo, is excluded. Skipping any line that merely starts `writer:` is a
@@ -103,18 +121,22 @@ def measure(path):
                 opts.append(l)
             elif CLOSE.match(l):
                 recap.append(l)
+            elif li in sk_idx:
+                sketch.append(l)
             elif RECAP.match(l) and hm.close_context(lines, li, last_turn, len(bodies)):
                 recap.append(l)
             else:
                 turn.append(l)
         w = len(' '.join(turn).split())
-        if w <= 10 and not opts and not recap and not memo:
+        if w <= 10 and not opts and not recap and not memo and not sketch:
             skipped += 1
             continue
         graded += 1
         items = [wc_words(l) for l in memo if MEMO_ITEM.match(l)]
+        sk_w = [wc_words(l) for l in sketch]
         m = (w, [option_words(l) for l in opts], len(recap),
-             items or [sum(wc_words(l) for l in memo)], memo_cap(t))
+             items or [sum(wc_words(l) for l in memo)], memo_cap(t),
+             len(sk_w), sk_w, option_cap(t), sketch_cap(t))
         if worst is None or w > worst[0]:
             worst = m
     if not graded:
@@ -132,21 +154,27 @@ if __name__ == '__main__':
         if m is None:
             nskip += 1
             print(f'  skip  {f} (no readable turn block, or every turn produced nothing)'); continue
-        w, opts, recap, memo_w, memo_lim, nt, ns = m
+        w, opts, recap, memo_w, memo_lim, nsk, sk_w, opt_lim, sk_lim, nt, ns = m
         nfiles += 1
-        over_opt = [o for o in opts if o > 18]
+        over_opt = [o for o in opts if o > opt_lim]
+        over_sk = [x for x in sk_w if x > sk_lim]
         over_memo = max(memo_w) > memo_lim
-        flag = 'ok  ' if w <= limit and not over_opt and recap <= 6 and not over_memo else 'OVER'
+        flag = 'ok  ' if (w <= limit and not over_opt and recap <= 6 and not over_memo
+                          and not over_sk and nsk <= 6) else 'OVER'
         bad_turn += w > limit
-        bad_aux += bool(over_opt) or recap > 6 or over_memo
+        bad_aux += bool(over_opt) or recap > 6 or over_memo or bool(over_sk) or nsk > 6
         scope = '' if nt <= 1 else f' | {nt} turns graded' + (f' ({ns} produced nothing)' if ns else '')
         print(f'  {flag}  {w:4d} turn words (limit {limit}){scope} | {len(opts)} options'
               f'{", longest " + str(max(opts)) if opts else ""} | {recap} recap bullets'
+              f'{f" | {nsk} sketch lines" if nsk else ""}'
               f'{" | memo max item " + str(max(memo_w)) + "w (limit " + str(memo_lim) + ")" if memo_w else ""}'
               f'{"  <-- " + ",".join(str(o) for o in over_opt) + "-word options" if over_opt else ""}'
               f'{"  <-- recap > 6" if recap > 6 else ""}'
+              f'{"  <-- " + ",".join(str(x) + "w" for x in over_sk) + " over sketch_words " + str(sk_lim) if over_sk else ""}'
+              f'{"  <-- sketch > 6 lines" if nsk > 6 else ""}'
               f'{"  <-- memo over " + str(memo_lim) + "w" if over_memo else ""}  <- {f.split("/")[-1]}')
-    # exit: 0 clean | 1 turn cap | 2 options/recap appendix limits | 3 both | 64 NOTHING GRADED
+    # exit: 0 clean | 1 turn cap | 2 an appendix limit (options, recap count, sketch length or count,
+    # memo item) | 3 both | 64 NOTHING GRADED
     # so the caller can say which instrument rang, instead of reporting a turn overrun when the options
     # were too long - and, newly, instead of reporting 0 when every file was skipped. A run where nothing
     # was readable is not a clean run; the two used to share the byte.

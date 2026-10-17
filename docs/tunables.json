@@ -4,11 +4,11 @@
    "dist": {
     "n": 30,
     "min": 46,
-    "med": 131,
+    "med": 127,
     "p90": 185,
     "max": 202
    },
-   "over": 8,
+   "over": 7,
    "cap_seen": 170
   },
   "single/control": {
@@ -26,8 +26,8 @@
    "dist": {
     "n": 121,
     "min": 7,
-    "med": 173,
-    "p90": 219,
+    "med": 172,
+    "p90": 217,
     "max": 345
    },
    "over": 71,
@@ -129,7 +129,7 @@
   "texture": {
    "single": {
     "runs_with_it": 0,
-    "runs": 44
+    "runs": 45
    },
    "multi": {
     "runs_with_it": 10,
@@ -139,7 +139,7 @@
   "same_pillar": {
    "single": {
     "runs_with_it": 0,
-    "runs": 44
+    "runs": 45
    },
    "multi": {
     "runs_with_it": 12,
@@ -149,7 +149,7 @@
   "ledger_gap": {
    "single": {
     "runs_with_it": 0,
-    "runs": 44
+    "runs": 45
    },
    "multi": {
     "runs_with_it": 3,
@@ -159,7 +159,7 @@
   "canon_loss": {
    "single": {
     "runs_with_it": 0,
-    "runs": 44
+    "runs": 45
    },
    "multi": {
     "runs_with_it": 0,
@@ -169,7 +169,7 @@
   "beats_over": {
    "single": {
     "runs_with_it": 0,
-    "runs": 44
+    "runs": 45
    },
    "multi": {
     "runs_with_it": 15,
@@ -179,7 +179,7 @@
   "options_over": {
    "single": {
     "runs_with_it": 0,
-    "runs": 44
+    "runs": 45
    },
    "multi": {
     "runs_with_it": 3,
@@ -187,7 +187,7 @@
    }
   }
  },
- "_files": 63,
+ "_files": 64,
  "_keys": 21,
  "_excluded": {
   "empty_turns": 0
