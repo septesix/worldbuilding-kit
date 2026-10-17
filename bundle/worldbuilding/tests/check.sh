@@ -62,6 +62,14 @@ templates(){
   has "the you-pick scenario is wired into the harness" "$B/tests/run.sh" 'you-pick'
   # R-27: the branch has to be readable where the model will look at it, not only in the spec's revision
   # log - a decision that lives in one file is a decision the next reader will re-litigate
+  # R-28: §7's slug rule has to be readable where a write is decided, and stale literals are how a
+  # moved tunable ends up contradicted by its own guidance (option_words was 18 in SKILL until this line)
+  sc=$(grep -rl -e collis -e collid "$B/SKILL.md" "$B/references" "$B/assets" 2>/dev/null | wc -l)
+  if [ "$sc" -ge 3 ]; then ok "the collision rule is stated in $sc shipped places"
+  else no "collision rule thin: stated in $sc places (want >=3)"; fi
+  if grep -rn "18 words\|≤18\b" "$B/SKILL.md" "$B/references" >/dev/null 2>&1; then
+    no "guidance hard-codes an option length again - it must name option_words (see R-26/R-28)"
+  else ok "no literal option length survives in guidance (the cap is named, not repeated)"; fi
   yp=$(grep -rl 'you pick' "$B/SKILL.md" "$B/references" "$B/tests/prompts" 2>/dev/null | wc -l)
   if [ "$yp" -ge 3 ]; then ok "the you-pick branch is stated in $yp shipped places"
   else no "you-pick branch thin: 'you pick' found in $yp places (want >=3)"; fi
@@ -1384,6 +1392,24 @@ L
     || no "selftest: untagged entities passed the spread check (rc=$r)"
   r=$(seed_run "$TMP/does-not-exist"); crash $r && [ $((r & 1)) = 1 ] \
     && ok "selftest: an empty world is under-band, not a crash" || no "selftest: no-world case mishandled (rc=$r)"
+  # R-28's identity half, on a seeded directory rather than a synthetic string: a link that finds no
+  # file, or several, is the collision §7 was written to prevent.
+  seed_mk "$TMP/sk" 6 ok 18; r=$(seed_run "$TMP/sk")
+  crash $r && [ $((r & 16)) = 0 ] && ok "selftest: a seed whose links resolve is not told to fix them (rc=$r)" \
+    || no "selftest: a clean seed trips the identity check (rc=$r) - false red on a good run"
+  python3 - "$TMP/sk" <<'L2'
+import sys, os, glob
+d = sys.argv[1] + '/encyclopedia'
+f = sorted(glob.glob(d + '/entity-01.md'))[0]
+src = open(f).read()
+open(d + '/twin-place.md', 'w').write(src)
+open(d + '/twin-person.md', 'w').write(src.replace('kind: place', 'kind: person'))
+open(f, 'a').write('\n## Links\n- [[nowhere-entity]]\n- [[twin]]\n')
+L2
+  r=$(seed_run "$TMP/sk")
+  crash $r && [ $((r & 16)) = 16 ] && ok "selftest: a dangling or ambiguous [[link]] fails the seed (rc=$r)" \
+    || no "selftest: broken entity identity passed (rc=$r) - spec §'s promise is still unenforced"
+
   python3 "$B/tests/seedcheck.py" 2>/dev/null; r=$?
   [ "$r" != 0 ] && ok "selftest: seedcheck refuses to report success with no arguments (rc=$r)" \
     || no "selftest: seedcheck exits 0 with no world dir - a gate that passes on nothing"

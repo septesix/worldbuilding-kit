@@ -256,7 +256,12 @@ forces a switch.** `review` reports the distribution.
 - **`threads.md`** — per thread: question, `asked-by` (writer|skill), pillars, hook,
   `status: open|parked|resolved`, `spawned:` entity links.
 - Entity kinds: `person · place · era · custom · conflict · institution · artifact · text · creature`.
-- Slugs: kebab-case from title; on collision append the kind (`lady-severin-person`).
+- Slugs: kebab-case from title, and **the slug is the entity's address** - one entity, one file, because a
+  colliding write deletes canon. Before creating `encyclopedia/<slug>.md`: if it exists and is the same
+  entity, write into it; if it is a different entity, append the kind (`severin`, `severin-person`) and
+  let `[[links]]` use the suffixed form; if it is the same kind *and* the same words, it is a duplicate, so
+  name it in the turn and let the writer decide rather than merging quietly (R-28). `seedcheck` fails a
+  seeded world whose `[[link]]` resolves to no file or to several.
 
 **Write boundary:** the skill writes only inside `world/`. It never modifies manuscript files, and
 any change it wants elsewhere is a proposal in chat.
@@ -650,6 +655,36 @@ one block, stated as provisional rather than dressed up as a distribution. Cost 
 line passes that would have been caught as prose, and six of them is 150 words of appendix in one turn —
 bounded by the count rule, and by `beat_budget` for any line that carries a beat label.
 
+**R-28 (2026-10-16, decision: option 1 - state the disambiguation procedure)** - §7's slug line was the only
+place the collision rule lived: 0 mentions in the shipped guidance, and the fixture's kind-suffixed files
+were doing the teaching by example, which is a modelling cue and not a rule. The stakes are canon safety,
+not naming taste: the slug is an address, so two entities deriving one filename means the second write
+deletes the first one's facts - the single operation append-only exists to forbid. §7 now states the test in
+order (same entity → write into it; different entity → append the kind; same kind and same words → say so in the
+turn and let the writer decide), and the rule is stated in three shipped places - `SKILL.md` (one clause in
+Bookkeeping), `references/rubric.md` (a section: "One entity, one file"), `assets/entity-template.md` (the
+`[[links]]` field comment) - with a guard that fails below three.
+
+Instrument side, and it is the part that keeps the promise honest: `seedcheck` gains bit 16 for entity
+identity - every `[[link]]` in a seeded world must resolve to exactly one file, where a bare `[[stem]]` is
+allowed to find `stem-kind.md` (that is what the disambiguation produces). Both sides are proven on a
+seeded *directory*, not a string: a clean seed trips nothing, and a seed with one dangling link plus one
+link that matches two kinds fails. The suffix/kind drift half stayed out of run-time checking on purpose - a
+title that legitimately ends in a kind word (`ledger-text`) would fail a good run, and a gate with false
+reds is a gate that gets ignored. Corpus evidence for how load-bearing this is: **0 of 74 artifacts contain
+two same-stem entities in one world**; the single apparent hit (`tollhouse-institution` + `tollhouse-place`)
+turned out to be two different runs in two different temp dirs, which is what counting the grep rather than
+remembering it is for.
+
+Found while doing it: `SKILL.md` still said options are "≤18 words" after R-26 moved the cap to 19 - a
+literal in guidance where a tunable name belongs, and the exact drift the provenance lane exists to catch,
+just on the prose side. It now says ≤`option_words`, and a guard forbids any hard-coded option length in
+`SKILL.md`/`references/`. Two more mistakes worth recording because they were quiet: a place-count guard I
+wrote used the pattern `collidi`, which matches "colliding" and not "collision" - it reported 1 shipped
+place when there were 3; and trimming a SKILL phrase for the word budget broke the F6 guard that keys on
+"never delete one under", which is the same hazard in mirror image (a guard that reads prose literally will
+be right about the prose and silent about the rule).
+
 **R-27 (2026-10-16, implement the "you pick" branch)** - §2.2 promised a branch that existed in no guidance
 file, so a writer who declined the premise got the premise question again. Implemented as a shape the
 instrument can see: three premises, one per **genre assumption** rather than one per adjective —
@@ -700,12 +735,10 @@ no decision, listed so the next reader does not have to rediscover them:
    unconditional, so turning it off changes no documented behaviour. The only tunable with no reader.
    As of R-24 the provenance table says so out loud ("not measured, bound to nothing") rather than
    leaving the row absent, which is what the new `provsweep` guard would have flagged.
-2. §7 **slug collision** (append the kind: `lady-severin-person`) is stated nowhere; the convention exists
-   only because the fixture's files happen to be named that way, so it is a modelling cue, not a rule.
-3. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from
+2. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from
    the root next time - is not in the kit; nor is §2.1's warning that project skills are reviewed by pi's
    trust prompt (the kit only says they "now load from here"). §8's "ask if ambiguous at depth" for several
    `world/` trees is likewise unimplemented: nearest wins and the path is named, but nothing asks.
-4. §9's **voice micro-test** (5 fresh-context samples of one digest turn, variance read by hand) was never
+3. §9's **voice micro-test** (5 fresh-context samples of one digest turn, variance read by hand) was never
    run - plan Task 9's `evidence/voice-microtest.md` does not exist. The question it was for got answered
    by full scenario runs instead, at roughly twelve times the cost.

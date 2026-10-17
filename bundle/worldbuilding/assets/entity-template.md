@@ -21,4 +21,5 @@ because that annotation is itself the in-place edit this rule exists to prevent.
 - T-000 <what is still unknown about this entity>
 
 ## Links
-- [[other-entity-slug]]  # link both ways by convention; review flags orphans
+- [[other-entity-slug]]  # link both ways; the slug is the file's address, so on a
+                        # collision append the kind: severin, severin-person

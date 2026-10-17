@@ -15,7 +15,7 @@ One question per turn. Voice: `references/voice.md`; questions: `references/rubr
 `world/`: **write nothing** — ask which folder, once.
 Everything lives in `world/` (`index.md`, `encyclopedia/<slug>.md`, `threads.md`,
 `log.md`); the skill **writes only there**. Anything else (chapter prose too) is a
-chat proposal: decline in voice, offer an `artifact` or `daily-life` entity. Several `world/`:
+chat proposal: decline in voice, offer an `artifact`/`daily-life` entity. Several `world/`:
 nearest wins; name the path.
 
 ## Modes
@@ -34,7 +34,7 @@ nearest wins; name the path.
   another scores >= `lopsidedness_floor`.
 - **digest** — ≤3 lines: world, path, thin/empty pillars, open threads, since last.
 - **target** — the hole scoring chose, naming an entity.
-- **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤18 words.
+- **question** — exactly one, answerable in a sentence, + `steady`/`sharp`/`strange` options ≤`option_words`.
 - **stop** — wait.
 - Off-rubric tangent: open the thread, follow it.
 
@@ -54,8 +54,8 @@ want/need, cap 4. **contradiction** = 1 if an answer could falsify canon.
 ## Bookkeeping
 
 Thread `status:` flips in place; question text never changes. New entities **spawn ≥3 threads**.
-`log.md` gets one machine line per turn that happened: `- turn: <n> · provoked: <types> · targeted: <pillar>` —
-`<types>` = one or more of the five, plus `review` on a memo turn; three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
-`world/`; supersede in place. At close: 3–6 recap bullets, citation first.
+`log.md` gets one machine line per turn that happened: `- turn: <n> · provoked: <types> · targeted: <pillar>`,
+`<types>` = one or more of the five (`review` on a memo turn); three of one type forces a switch. Canon: one fact, ≤25 words, declarative, append-only - **files too**: never delete one under
+`world/`; supersede in place; collisions take the kind. At close: 3–6 recap bullets, citation first.
 
 Every tunable lives in `world/index.md`; the names are in `references/rubric.md`.

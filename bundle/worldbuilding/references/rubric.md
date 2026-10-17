@@ -66,6 +66,29 @@ One line per turn that happened, none for turns you did not write. An invented l
 append-only file, and every window rule above then reads a history that never occurred - which is worse
 than the hole it was filling, because the hole was honest about being unknown.
 
+## One entity, one file
+
+Spec §7 says slugs are kebab-case from the title and "on collision append the kind". A slug is not a name,
+it is an address: `[[links]]` point at it, the scoreboard counts it, and its canon lives in the file. So two
+entities deriving `encyclopedia/severin.md` is not a tidiness problem - the second write deletes the first
+one's facts, which is the one thing append-only canon forbids.
+
+Settle it in this order, before creating anything:
+
+1. **Same entity?** Write into the existing file. Two entries for one bridge is worse than a crowded one,
+   and a link that has to choose between two files is a bug in the world, not in the writer.
+2. **Different entities, same words?** Append the kind to the *new* one: `lady-severin` and
+   `lady-severin-person`. Then `[[links]]` use the suffixed form - the fixture's `nine-bridges-place`,
+   `tide-lock-artifact` are the convention, not decoration.
+3. **Same kind, same words?** That is not a collision, it is a duplicate. Say so in the turn - "there is
+   already a `lockkeepers-daughter-person`; same woman?" - and let the writer decide. Quiet merging is a
+   retcon, and retcons get a `revised:` line, not an overwrite.
+
+Listing the directory is enough to know (`ls world/encyclopedia`); it is not a read against
+`reads_per_turn`, which counts entity files opened. `seedcheck` fails a seeded world whose `[[links]]`
+resolve to nothing, or to more than one file. The suffix/kind drift is checked against the shipped fixture
+rather than on runs: a title that genuinely ends in a kind word would otherwise fail a good run.
+
 ## Closing the session
 
 Close at `turns_per_session` turns (default 12), or earlier on the writer's cue to wrap up. The count
