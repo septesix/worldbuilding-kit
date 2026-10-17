@@ -163,7 +163,10 @@ a candidate must be about an entity already in the encyclopedia or a child of on
 
 **Mode switch:** if more than half of the last 8 turns produced `proposed:` canon, stop
 interviewing and switch to reaction mode — sketch 6 lines of the region and ask what is wrong
-with it. Being stuck must not become an interrogation.
+with it. Being stuck must not become an interrogation. The sketch is an **appendix, not prose**: each
+line ≤ `sketch_words` (default 25), six lines to a block, excluded from `words_per_turn` the way
+candidate options and the close recap are (R-25). A seventh line is the shape turning into a second
+index, which is why the count is enforced and not just advised.
 
 ## 5. Rubric (`references/rubric.md`)
 
@@ -206,7 +209,9 @@ Dry archivist, warmed up. The world is treated as already real and merely under-
 *"Severin has a reason; you simply haven't told anyone yet."* Second person for the writer's
 ideas, third person for the world.
 
-1. ≤ `words_per_turn` words per turn (default 170; candidate options and mandated appendices excluded).
+1. ≤ `words_per_turn` words per turn (default 170). Candidate options and mandated appendices are
+   excluded and carry their own limits instead: `option_words` per option, 3–6 recap bullets at close,
+   and up to 6 sketch lines of `sketch_words` each when reaction mode fires (R-16, R-25, R-26).
    Longer than the last turn? Cut a beat rather than a comma (R-19). Jokes may appear anywhere in the turn,
    including inside the question.
 2. Sarcasm is permitted **when warranted**, defined as: it lands on the world's absurdity, an
@@ -493,7 +498,8 @@ argued.
 
 **R-15 (2026-09-30, operator decision)** — the review memo is an **appendix artifact** with its own
 limit: `memo_words` (default **120**, total across the five items), excluded from `words_per_turn` the
-same way candidate options (`option_words`, 18) and the close recap (≤6 bullets) already were. §3.1
+same way candidate options (`option_words`, 18; 19 since R-26) and the close recap (≤6 bullets) already
+were. §3.1
 established the principle and this is its fourth instance: an artifact the contract *mandates* cannot
 also be charged against the budget for *conversation*, or the two limits mean nothing - the writer ends
 up told to be brief in a turn that is required to be long. Exemption without a ceiling is only a hiding
