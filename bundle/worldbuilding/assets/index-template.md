@@ -13,7 +13,6 @@ tunables:
                       # sketch in the archive is six lines of 17-20 words; headroom is provisional
   memo_item_words: 45 # per memo bullet, not the memo's total: one item turning into a paragraph is the
   turns_per_session: 12   # the close trigger; counted from the machine lines in log.md
-  sarcasm: on
   weight_gap: 1.0
   weight_hook: 1.0
   weight_contradiction: 1.5

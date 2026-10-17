@@ -23,10 +23,18 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 | `sketch_words: 25` | each line of a reaction-mode sketch block, six lines to a block | `SKILL.md`, `rubric.md`, `index-template.md` | **one block on record** (`cadence-skill-multi-20261015T035948Z.md` turn 5): 6 lines, 17-20 words each, median 18. The count is honest: n=6, one run. Provisional, not a distribution · sketch lines are exempt from `words_per_turn` and bounded here instead | **provisional, stated as such** (R-25). 25 is headroom over a single observation, and the reason it exists at all is that F1 proved the corpus was silently exempting this shape by *accident*; an explicit allowance is cheaper to revisit than an invisible one. Re-measure after 5 more reaction-mode turns |
 | `memo_item_words: 45` | each line of a review memo | `rubric.md` | single/skill n=13: median 38, max **60**, 3 items over · multi/skill n=1: 50w, over | **measured, breached 4 times in 14 items.** The shape cap is real and roughly right; the misses are one clause long. n=1 for multi — do not read it as a mode difference |
 | `turns_per_session: 12` | when the close cue fires | `SKILL.md`, `index-template.md` | n=1: one 12-turn session observed end-to-end, cue fired, recap followed | **n=1.** Nothing about a 30-turn or 6-turn session is measured |
-| `sarcasm: on` | the archivist's temperature, not a countable rule | `SKILL.md`, `voice.md` | **not measured.** Nothing in the graders reads this key: no artefact feature is gated on it, so raising or lowering it changes no verdict. Open item in the spec - either bind it to something the instrument can see or delete the knob |
 | `weight_gap: 1.0`, `weight_hook: 1.0`, `weight_contradiction: 1.5`, `lopsidedness_floor: 0.6` | how much each score term counts, and the bar for "another candidate is nearly as good" | `index-template.md`, `SKILL.md` | no run varies them; `invariants` prints the decomposition (`gap_weight 3` is the **term**, 0–3, not a tunable) and nothing compares the products | **unmeasured.** Never tested against an alternative, only against the fixture's shape. Note the two layers: the *terms* `gap_weight` (0–3) and `hook_weight` (0–4) are what a candidate scores; the `weight_*` keys multiply them. Conflating them once put a value of 0.34 in this table for a tunable that ships 0.6 |
 
 ## Corrections this table forced
+
+- **"`sarcasm: on` was a knob."** It was declared in the template and read by nothing, so R-24 put it in this
+  table as "not measured, bound to nothing", and R-29 deleted it. The reason it cannot be measured is in
+  `evidence/SARCASM-20261016.md`: irony in this voice is carried by deadpan content, not by particles - the
+  antiphrasis lexicon (`of course`, `obviously`, `surely`, `lovely`) scores **0 occurrences in ~53k words of
+  prose across 75 artifacts** - and every structural proxy landed within noise of the control arm (0.7-0.9
+  per 1k words either way), so a gate on it would flag grammar rather than tone. The rule stays where the
+  model reads it, in `voice.md` #2 and #3. A stale `sarcasm:` line in a world's `index.md` is now proven to
+  change no verdict, which is the invariant that lets a knob be deleted without stranding a user's file.
 
 - **"Single-turn runs hold the cap."** Wrong as a corpus claim: 23% over, n=30. The earlier statement came
   from four samples in one batch and was repeated in a commit message before this measurement existed.

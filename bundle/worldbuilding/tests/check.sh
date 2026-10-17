@@ -62,6 +62,37 @@ templates(){
   has "the you-pick scenario is wired into the harness" "$B/tests/run.sh" 'you-pick'
   # R-27: the branch has to be readable where the model will look at it, not only in the spec's revision
   # log - a decision that lives in one file is a decision the next reader will re-litigate
+  # R-29: a knob was deleted because it measured nothing. Two things must be true afterwards, and the
+  # second is proved by contrast: an abandoned key has to stay inert, and a live one has to move the
+  # number - a test that cannot detect a binding would pass any deletion.
+  ivs="$REPO/evidence/cadence-skill-multi-20261015T035948Z.md"
+  iv1=$(mktemp); iv2=$(mktemp)
+  awk 'NR==2 && /^label:/ { print $0 " sarcasm: off"; next } { print }' "$ivs" > "$iv1"
+  awk '{ sub(/words_per_turn:[ ]*[0-9]+/, "words_per_turn: 9999"); sub(/words_per_turn=[0-9]+/, "words_per_turn=9999"); print }' "$ivs" > "$iv2"
+  base=$(python3 "$B/tests/wordcount.py" "$ivs" 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  stale=$(python3 "$B/tests/wordcount.py" "$iv1" 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  live=$(python3 "$B/tests/wordcount.py" "$iv2" 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  python3 "$B/tests/wordcount.py" "$ivs" >/dev/null 2>&1; rcb=$?
+  python3 "$B/tests/wordcount.py" "$iv2" >/dev/null 2>&1; rcl=$?
+  rm -f "$iv1" "$iv2"
+  if [ "${stale:-x}" = "${base:-y}" ]; then
+    ok "a world still carrying \`sarcasm:\` grades exactly as before (${stale}w) - the deletion strands no file"
+  else
+    no "an inert key changed the measurement (${base}w -> ${stale}w) - \`sarcasm\` is being read by something"
+  fi
+  if [ "${live:-x}" != "${base:-y}" ] || [ "$rcl" != "$rcb" ]; then
+    ok "the same probe detects a live tunable (${base}w/rc$rcb -> ${live}w/rc$rcl) - the inertness result means something"
+  else
+    no "changing words_per_turn moved nothing - this invariance test cannot detect a binding at all"
+  fi
+  if grep -q 'sarcasm' "$B/assets/index-template.md" || grep -qE '^[[:space:]]*sarcasm:' "$REPO"/docs/superpowers/specs/*.md; then
+    no "the deleted knob is back in the template or spec 3.2 (R-29)"
+  else ok "the knob stays deleted: absent from the shipped template and from spec 3.2"; fi
+  if grep -q 'Warranted means' "$B/references/voice.md" && grep -q "writer's idea, effort or taste" "$B/references/voice.md"; then
+    ok "the rule outlived the knob - voice 2 still says when irony is warranted and never on the writer"
+  else
+    no "deleting the knob took the rule with it - voice 2 lost its wording"
+  fi
   # R-28: §7's slug rule has to be readable where a write is decided, and stale literals are how a
   # moved tunable ends up contradicted by its own guidance (option_words was 18 in SKILL until this line)
   sc=$(grep -rl -e collis -e collid "$B/SKILL.md" "$B/references" "$B/assets" 2>/dev/null | wc -l)

@@ -135,7 +135,6 @@ tunables:
   sketch_words: 25            # per line of a reaction-mode sketch block, six lines to a block (R-25)
   memo_item_words: 45         # per memo bullet, not the memo's total (R-16)
   turns_per_session: 12       # the close trigger (R-10 note)
-  sarcasm: on                 # declared; nothing in the guidance reads it yet - see Open items
   weight_gap: 1.0
   weight_hook: 1.0
   weight_contradiction: 1.5
@@ -655,6 +654,24 @@ one block, stated as provisional rather than dressed up as a distribution. Cost 
 line passes that would have been caught as prose, and six of them is 150 words of appendix in one turn —
 bounded by the count rule, and by `beat_budget` for any line that carries a beat label.
 
+**R-29 (2026-10-16, decision: delete the knob, keep the rule)** - `sarcasm: on` is gone from the template and
+from §3.2. It was measured rather than argued first (`evidence/SARCASM-20261016.md`): the irony in this voice
+is carried by deadpan *content*, not by particles, so the antiphrasis lexicon scores **0 occurrences in ~53k
+words of prose across 75 artifacts**, and every structural proxy landed at the same rate in the skill and
+control arms (0.7-0.9 per 1k words either way) at a blind precision of roughly half - "rather" matching the
+idiom "rather than" is the representative false positive. A gate on that would flag grammar and would not
+respond to the rule it claimed to enforce, which is the worst of the two available failures. The prohibited
+class is real but empty: an evaluation word appears in **1 of 2,317** narration lines in skill runs and 0 of
+300 in control, so a tripwire would be calibrated on nothing and its single corpus hit is legitimate feedback
+worded in the second person.
+
+What remains is the rule (`voice.md` #2 and #3), now saying out loud that it is not switchable, plus two
+shipped assertions: the *survival* of the wording, and an **invariance** - a world still carrying a stale
+`sarcasm:` key must grade exactly as before, proved alongside a positive control that shows the same probe
+would notice a live tunable. That control is what surfaced F8 (§3.2, same day): `wordcount` had been grading
+argument-less corpus calls against a literal 160 while `invariants` read the artifact's own label, so one
+transcript could be judged against two caps. Deleting a knob turned out to be the cheap half of the work.
+
 **R-28 (2026-10-16, decision: option 1 - state the disambiguation procedure)** - §7's slug line was the only
 place the collision rule lived: 0 mentions in the shipped guidance, and the fixture's kind-suffixed files
 were doing the teaching by example, which is a modelling cue and not a rule. The stakes are canon safety,
@@ -731,10 +748,6 @@ still bounds the turn the options live in.
 Verified against the shipped bundle on 2026-10-15; these are spec requirements with no implementation and
 no decision, listed so the next reader does not have to rediscover them:
 
-1. §3.2 **`sarcasm: on`** is declared in the template and read by nothing; `voice.md`'s sarcasm rule is
-   unconditional, so turning it off changes no documented behaviour. The only tunable with no reader.
-   As of R-24 the provenance table says so out loud ("not measured, bound to nothing") rather than
-   leaving the row absent, which is what the new `provsweep` guard would have flagged.
 2. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from
    the root next time - is not in the kit; nor is §2.1's warning that project skills are reviewed by pi's
    trust prompt (the kit only says they "now load from here"). §8's "ask if ambiguous at depth" for several
