@@ -20,7 +20,7 @@
     "max": 708
    },
    "over": 9,
-   "cap_seen": 120
+   "cap_seen": 170
   },
   "multi/skill": {
    "dist": {
@@ -129,7 +129,7 @@
   "texture": {
    "single": {
     "runs_with_it": 0,
-    "runs": 46
+    "runs": 49
    },
    "multi": {
     "runs_with_it": 10,
@@ -139,7 +139,7 @@
   "same_pillar": {
    "single": {
     "runs_with_it": 0,
-    "runs": 46
+    "runs": 49
    },
    "multi": {
     "runs_with_it": 12,
@@ -149,7 +149,7 @@
   "ledger_gap": {
    "single": {
     "runs_with_it": 0,
-    "runs": 46
+    "runs": 49
    },
    "multi": {
     "runs_with_it": 3,
@@ -159,7 +159,7 @@
   "canon_loss": {
    "single": {
     "runs_with_it": 0,
-    "runs": 46
+    "runs": 49
    },
    "multi": {
     "runs_with_it": 0,
@@ -169,7 +169,7 @@
   "beats_over": {
    "single": {
     "runs_with_it": 0,
-    "runs": 46
+    "runs": 49
    },
    "multi": {
     "runs_with_it": 15,
@@ -179,7 +179,7 @@
   "options_over": {
    "single": {
     "runs_with_it": 0,
-    "runs": 46
+    "runs": 49
    },
    "multi": {
     "runs_with_it": 3,
@@ -187,7 +187,7 @@
    }
   }
  },
- "_files": 65,
+ "_files": 68,
  "_keys": 21,
  "_excluded": {
   "empty_turns": 2

@@ -87,12 +87,10 @@ BEAT_CAP_DEFAULT = 60   # measured over the corpus, not felt (spec R-23). Per-be
 # reflect 12%, write back 7%, target 3%, lean beats 0%. Same shape, quieter, and 90w+ still fails.
 
 
-def beat_cap(text, label):
-    m = re.search(r'beat_budget:\s*(\d+)', text)
-    if m: return int(m.group(1)), 'the dumped world/index.md'
-    m = re.search(r'beat_budget=(\d+)', label)
-    if m: return int(m.group(1)), 'the run label'
-    return BEAT_CAP_DEFAULT, 'default (no beat_budget in the world index)'
+def beat_cap(text, label=None):
+    """The beat budget this run was graded under - one precedence, shared with every other tunable."""
+    v, src = hm.tunable(text, 'beat_budget', BEAT_CAP_DEFAULT)
+    return v, {'dump': 'the dumped world/index.md', 'label': 'the run label'}.get(src, 'default (no beat_budget in the artifact)')
 
 
 def turns_of(text):
@@ -167,22 +165,23 @@ def main():
     path = next(a for a in args if not a.startswith('--'))
     text = open(path, encoding='utf-8', errors='replace').read()
     limit, cad, maxr, fallback = 170, 4, 3, []
-    lab = re.search(r'^label: .*', text, re.M)
-    for key, box in (('words_per_turn', 'limit'), ('texture_cadence', 'cad'), ('reads_per_turn', 'maxr')):
-        m = re.search(key + r'=(\d+)', lab.group(0) if lab else '')
-        if m:
-            v = int(m.group(1))
-            limit, cad, maxr = (v, cad, maxr) if key == 'words_per_turn' else \
-                               (limit, v, maxr) if key == 'texture_cadence' else (limit, cad, v)
-        else:
+    for key in ('words_per_turn', 'texture_cadence', 'reads_per_turn'):
+        v, src = hm.tunable(text, key, None)
+        if src == 'default':
             fallback.append(key)
+        elif key == 'words_per_turn':
+            limit = v
+        elif key == 'texture_cadence':
+            cad = v
+        else:
+            maxr = v
     ts = turns_of(text)
     if not ts:
         print('  skip  no turns recorded (single-turn file or aborted run)'); return 0
     sess = next((p for p in (path + '.session.jsonl', path + '.session.jsonl.gz')
                    if os.path.exists(p)), '')
     LOG, NMACH, LOGSRC = log_sequence(text, len(ts))
-    CAP, CAPSRC = beat_cap(text, lab.group(0) if lab else '')
+    CAP, CAPSRC = beat_cap(text)          # precedence lives in harness_markers.tunable, once
     TABLE = coverage_table(text)
     MEMO_CAP = wc.memo_cap(text)
     print(f'   beat budget {CAP}w ({CAPSRC})')

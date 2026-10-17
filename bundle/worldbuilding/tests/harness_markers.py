@@ -162,6 +162,29 @@ def close_context(lines, i, is_last=False, n_turns=0, is_close=None):
     return is_close
 
 
+_LABEL = re.compile(r'^label: .*', re.M)
+
+
+def tunable(text, key, default=None):
+    """The value a run was graded under, and where it came from.
+
+    Precedence: the dumped `world/index.md` (what the world says, which is what spec 3.2 makes the
+    source), then the `label:` line the harness wrote, then the shipped default. Both gates have to agree on that
+    order: `wordcount` used to read only the colon form while `invariants` read only the `=` form, so the
+    same artifact could be judged against two different caps - and an argument-less `wordcount` fell back
+    to a literal 160, grading 170-cap runs by a rule they were not made under.
+    """
+    m = re.search(r'(?m)^\s*' + re.escape(key) + r'\s*:\s*(\d+)', text)
+    if m:
+        return int(m.group(1)), 'dump'
+    lab = _LABEL.search(text)
+    if lab:
+        m = re.search(re.escape(key) + r'=(\d+)', lab.group(0))
+        if m:
+            return int(m.group(1)), 'label'
+    return default, 'default'
+
+
 def is_machine_line(line):
     """A `log.md` machine line, as opposed to a sentence ABOUT one.
 

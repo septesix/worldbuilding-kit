@@ -64,9 +64,9 @@ def wc_words(line):
 
 
 def _tunable(text, key, default):
-    """A limit the world itself carries, read from the artifact's label or dumped index."""
-    m = re.search(key + r':\s*(\d+)', text)
-    return int(m.group(1)) if m else default
+    # One precedence, shared with invariants via harness_markers.tunable (label, then dumped index,
+    # then the shipped default). See GRADER-20261016.md F8.
+    return hm.tunable(text, key, default)[0]
 
 
 def option_cap(text):
@@ -77,6 +77,14 @@ def option_cap(text):
 
 def sketch_cap(text):
     return _tunable(text, 'sketch_words', 25)
+
+
+def cap_for(path):
+    """The turn cap this run was graded under, from its own label line; 170 is the shipped default."""
+    try:
+        return _tunable(open(path, encoding='utf-8', errors='replace').read(), 'words_per_turn', 170)
+    except OSError:
+        return 170
 
 
 def measure(path):
@@ -147,9 +155,14 @@ def measure(path):
 if __name__ == '__main__':
     files = [a for a in sys.argv[1:] if not a.isdigit()]
     args = [a for a in sys.argv[1:] if a.isdigit()]
-    limit = int(args[0]) if args else 160
+    # An explicit cap on the command line wins (that is how run.sh grades against the live template).
+    # With none, each artifact is judged by the words_per_turn in its own dump - the same rule invariants
+    # already follows. Before this, argument-less calls graded every 170-cap run against a literal 160,
+    # which is stricter than the rule the run was made under: good runs failing, not bad ones passing.
+    cli = int(args[0]) if args else None
     bad_turn = bad_aux = 0; nfiles = nskip = 0
     for f in sorted(files):
+        limit = cli if cli is not None else cap_for(f)
         m = measure(f)
         if m is None:
             nskip += 1
