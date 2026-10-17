@@ -12,7 +12,7 @@ trap 'rm -rf "$WORK" "$FAKEHOME" "$VDT"' EXIT
 case "$SCEN" in
   established|continue-established|stale-index|tone-sarcasm|reaction-mode|pressure-wrapup|review|review-owed)
     cp -R "$HERE/fixtures/established/." "$WORK/" ;;
-  continue-empty|new-world) : ;;             # empty project dir (new-world: nothing to read yet)
+  continue-empty|new-world|you-pick) : ;;    # empty project dir (new-world: nothing to read yet)
   home-dir) : ;;                             # non-project dir == the refuse-to-scaffold predicate
 esac
 [ "$SCEN" = stale-index ] && rm -f "$WORK/world/index.md"

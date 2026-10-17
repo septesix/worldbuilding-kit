@@ -14,7 +14,7 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 
 | tunable | what it limits | stated in | measured | verdict |
 |---|---|---|---|---|
-| `words_per_turn: 170` | assistant prose per turn, recap/memo excluded | `SKILL.md`, `voice.md`, `rubric.md`, `index-template.md` | single/skill n=30: median 127, p90 185, **23% over** · multi/skill n=121: median 172, p90 217, **58% over** · multi/control n=17: median 208, p90 250, **70% over** | **supported for single, wrong for long sessions.** Set from four single-turn runs (128, 164, 164, 188). These are corrected figures, not new behaviour: until 2026-10-16 the counter exempted any bullet that merely OPENED with a slug, and that is reaction mode's shape as much as a close recap's, so the same 19 multi/skill runs read 41% over instead of 58% (n moved 119→121 because two turns had nothing but exempt-shaped lines and produced no measurement at all). Control arms, which are not given the rule, sit 20% higher at the median - the rule moves behaviour; its level is not validated above ~155 |
+| `words_per_turn: 170` | assistant prose per turn, recap/memo excluded | `SKILL.md`, `voice.md`, `rubric.md`, `index-template.md` | single/skill n=30: median 127, p90 185, **23% over** · multi/skill n=119: median 161, p90 210, **43% over** · multi/control n=17: median 199, p90 241, **64% over** | **supported for single, wrong for long sessions.** Set from four single-turn runs (128, 164, 164, 188). These are corrected figures, not new behaviour: until 2026-10-16 the counter exempted any bullet that merely OPENED with a slug, and that is reaction mode's shape as much as a close recap's, so the same 19 multi/skill runs read 41% over instead of 58%. Control arms, which are not given the rule, sit 20% higher at the median - the rule moves behaviour; its level is not validated above ~155 |
 | `texture_cadence: 4` | turns allowed between texture pillars | `SKILL.md`, `rubric.md` | multi: **10 of 19 runs** contain a cadence breach · single: flag never emitted | **measured in multi only.** Single-turn runs cannot show it (one turn, no window). Placement was moved to the write-back step (G3, key `52805797`); n=1 verified there, unverified at 12 turns |
 | pillar repetition (same rule, 2-turn window) | same pillar on consecutive turns | `SKILL.md` | multi: **12 of 19 runs** breach | **weakest point in the guidance**, and the reason G3 is provisional. Observed repeats end at turns 2 and 7 of a long session |
 | `reads_per_turn: 3` | entity files opened per turn | `SKILL.md`, `rubric.md` | multi/skill n=123: median 0, p90 2, max 4, **0% over** · multi/control n=17: median 0, max 1 · single: not measured | **supported, and loose.** Nobody gets near 3. Median 0 reads per turn means the budget describes a fear, not a behaviour — the interesting number here is 0, not 3 |
@@ -28,14 +28,18 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 
 ## Corrections this table forced
 
-- **"Single-turn runs hold the cap."** Wrong as a corpus claim: 26% over, n=30. The earlier statement came
+- **"Single-turn runs hold the cap."** Wrong as a corpus claim: 23% over, n=30. The earlier statement came
   from four samples in one batch and was repeated in a commit message before this measurement existed.
-- **"The instrument's numbers are the world's numbers."** The 41% above was itself folklore: the counter
-  exempted any bullet opening with a slug, so reaction-mode prose (six lines, the shape `SKILL.md:52`
-  asks for) left the transcript invisible to `words_per_turn`. Same 19 runs, same turns, 58% once the
-  exemption is keyed to position instead of shape. Every behavioural number in this repo predating
-  2026-10-16 should be read as a floor on turn length, not a measure of it. Found by an independent
-  audit of the graders; see `GRADER-20261016.md` and R-24.
+- **"The instrument's numbers are the world's numbers."** Three readings of the same 19 runs, and the
+  number moved every time the instrument changed: **41%** while the counter exempted any bullet that merely
+  opened with a slug (reaction mode's shape, so mandated prose went invisible - R-24); **58%** once the
+  exemption was keyed to position (right about shape, and it silently admitted the harness's own prompt
+  echo into the model's word count - R-24's positional rewrite); **43%** now that the echo is excluded by
+  where it sits rather than by whether a header survived the grader's own string split (R-27). The 58% sat
+  in this file and in a commit message for a matter of hours, which is the whole argument for the provenance
+  lane: a corrected instrument is not a corrected measurement, and the re-derivation has to be run, not
+  assumed. Every behavioural number predating 2026-10-16 is a floor on turn length, not a measure of it. See
+  `GRADER-20261016.md` (R-24) and `R27-20261016.md` (R-27).
 - **"Beats sit at the limit."** Wrong twice over: 15 of 19 runs (multi/skill) did contain a beat over
   the budget recorded in that run's own dump,
   but the beats breaching were mostly `reflect` and `write back` doing the work they are asked to do. The
@@ -48,7 +52,7 @@ repo has looked at that mode, and that is a statement about the evidence, not ab
 
 ## What would change if the numbers moved
 
-Raising `words_per_turn` launders drift into a quota (see `G2-20261015.md`): the 41% over-cap in long
+Raising `words_per_turn` launders drift into a quota (see `G2-20261015.md`): the 43% over-cap in long
 sessions is not the cap being too small, it is the length comparison failing to hold as turns accumulate.
 `beat_budget` was the tunable with strong evidence that its level was wrong; R-23 moved it to 60. Note that raising a default barely moves the corpus breach count (18 to 15 runs with an
 over-budget beat), because every artifact is judged by the `beat_budget` value in its own dump - 45 for

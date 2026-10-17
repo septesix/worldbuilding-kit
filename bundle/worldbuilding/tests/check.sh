@@ -52,12 +52,19 @@ templates(){
   # the number and the noun sit on opposite sides of a line wrap in SKILL.md, so one grep cannot see
   # both - asserting the pair separately keeps the guard honest instead of lucky
   has "seed band named in SKILL (I4)" "$B/SKILL.md" '5[–-]8'
-  has "seed band applies to entity files (I4)" "$B/SKILL.md" 'entity files from'
+  has "seed band applies to entity files (I4)" "$B/SKILL.md" 'entity files'
   has "seeding shape documented in the rubric (I4)" "$B/references/rubric.md" 'Seeding a new world'
   has "seed texture rule stated (I4/R-8)" "$B/references/rubric.md" 'texture pillar'
   has "seed thread floor stated (I4)" "$B/references/rubric.md" '3 threads per seeded entity'
   has "a new-world scenario exists" "$B/tests/prompts/new-world.txt" 'canal city'
   has "the new-world scenario is wired into the harness" "$B/tests/run.sh" 'new-world'
+  has "a you-pick scenario exists (R-27)" "$B/tests/prompts/you-pick.txt" 'premise'
+  has "the you-pick scenario is wired into the harness" "$B/tests/run.sh" 'you-pick'
+  # R-27: the branch has to be readable where the model will look at it, not only in the spec's revision
+  # log - a decision that lives in one file is a decision the next reader will re-litigate
+  yp=$(grep -rl 'you pick' "$B/SKILL.md" "$B/references" "$B/tests/prompts" 2>/dev/null | wc -l)
+  if [ "$yp" -ge 3 ]; then ok "the you-pick branch is stated in $yp shipped places"
+  else no "you-pick branch thin: 'you pick' found in $yp places (want >=3)"; fi
   has "seedcheck wired into the single-turn harness" "$B/tests/run.sh" 'seedcheck'
   has "review trigger named in SKILL (I5)" "$B/SKILL.md" 'names `review`'
   has "the memo is named in SKILL (I5)" "$B/SKILL.md" 'the memo'
@@ -340,6 +347,72 @@ method(){
     no "writer: exclusion is not positional: baseline=${wa:-?}, delta=$d (want <=20 and 25-40)"
   fi
   rm -f "$f2a" "$f2b"
+  # R-27, the archive-shaped version of that test. turns_of splits on the turn HEADER INCLUDING ITS
+  # DIGITS, so no `^## turn` line is left above the echo - which is how prompt text silently became prose
+  # for a whole revision while the transcript-shaped guard right above stayed green. Three sides, and all
+  # of them in the shape real multi artifacts actually have.
+  eca=$(mktemp); ecb=$(mktemp); ecc=$(mktemp)
+  PROSE='**Digest.** the ledger is thin on `daily-life`: the tollhouse keeps three entities and the ninth bridge still has no kitchens, so the archive is one long corridor of bridges and nobody has described a breakfast, which is the hole that shows up later as a world nobody can inhabit.\n**Target.** `bridge-tolls`, because it cites `ninth-bridge`.\n**Question.** who is allowed to sleep under a bridge that charges a name?\n'
+  { printf '# e (skill) MULTI\nlabel: commit=cafe001 guidance=23e6e3af words_per_turn=170\n\n## turn 1\n'
+    printf 'writer: the harness put these nine words here, not the model, so count them not\n'
+    printf "$PROSE"; } > "$eca"
+  { printf '# e (skill) MULTI\nlabel: commit=cafe001 guidance=23e6e3af words_per_turn=170\n\n## turn 1\n'
+    printf 'writer: the harness put these nine words here, not the model, so count them not, and here are fifteen further words of scripted prompt text that belong to nobody\n'
+    printf "$PROSE"; } > "$ecb"
+  { printf '# e (skill) MULTI\nlabel: commit=cafe001 guidance=23e6e3af words_per_turn=170\n\n## turn 1\n'
+    printf 'writer: the harness put these nine words here, not the model, so count them not\n'
+    printf "$PROSE"
+    printf 'writer: and here are fifteen more words that begin with the token but sit in the middle of the answer, which is the laundering channel\n'; } > "$ecc"
+  wa=$(python3 "$B/tests/wordcount.py" "$eca" 170 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  wb=$(python3 "$B/tests/wordcount.py" "$ecb" 170 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  wc_=$(python3 "$B/tests/wordcount.py" "$ecc" 170 2>&1 | grep -oE '[0-9]+ turn words' | grep -oE '^[0-9]+')
+  rm -f "$eca" "$ecb" "$ecc"
+  if [ "${wa:-x}" = "${wb:-y}" ]; then
+    ok "the echo is excluded in ARCHIVE shape too (${wa}w either way; R-24's regression cannot return quietly)"
+  else
+    no "prompt text counted as prose in the multi parse path (${wa}w vs ${wb}w) - the split leaves no header above the echo"
+  fi
+  d=$(( ${wc_:-0} - ${wa:-0} ))
+  if [ "$d" -ge 12 ] && [ "$d" -le 25 ]; then
+    ok "a mid-turn writer: line still counts in archive shape (+${d}w) - the exemption is positional, not a token"
+  else
+    no "mid-turn writer: line delta=$d (want 12-25) - either the channel is open or the fix is over-broad"
+  fi
+  # R-27's behaviour: a writer who declines the premise is dealt three, never asked again.
+  ypa=$(mktemp); ypb=$(mktemp); ypc=$(mktemp)
+  { printf '# y (skill) MULTI\nlabel: commit=cafe002 guidance=23e6e3af words_per_turn=170 texture_cadence=4 reads_per_turn=3 beat_budget=60 option_words=19 sketch_words=25\n\n## turn 1\n'
+    printf 'writer: starting a new world, help me set it up\n**Digest.** nothing on disk yet.\n**Target.** a blank `world/`.\n**Question.** what kind of world sounds fun to you?\n**Stop.** waiting.\n\n## turn 2\n'
+    printf 'writer: you pick, I have nothing at all\n**Digest.** still empty.\n**Target.** the premise itself.\n**Question.** honestly, what kind of world sounds fun - name a genre and I will build it.\n**Stop.** waiting.\n'; } > "$ypa"
+  { printf '# y (skill) MULTI\nlabel: commit=cafe002 guidance=23e6e3af words_per_turn=170 texture_cadence=4 reads_per_turn=3 beat_budget=60 option_words=19 sketch_words=25\n\n## turn 1\n'
+    printf 'writer: starting a new world, help me set it up\n**Digest.** nothing on disk yet.\n**Target.** a blank `world/`.\n**Question.** give me a paragraph of premise, or say you pick.\n**Stop.** waiting.\n\n## turn 2\n'
+    printf 'writer: you pick, I have nothing at all\n**Digest.** still empty.\n**Target.** three doors, burn one.\n**Question.** which of these do we build on, or none?\n'
+    printf -- '- power — the tollhouse may levy one name a year and the Council spends its own. Two families keep the ledger of who is left mute.\n'
+    printf -- '- cost — every crossing moves silt, so a bridge buys dry ground upstream by drowning a field downstream. Engineering is a feud with a receipt.\n'
+    printf -- '- belief — the ninth bridge is prayed to because nobody recalls it was built. The keystone cult and the masons dispute which of them is the heresy.\n'
+    printf '**Stop.** waiting.\n'; } > "$ypb"
+  { printf '# y (skill) MULTI\nlabel: commit=cafe002 guidance=23e6e3af words_per_turn=170 texture_cadence=4 reads_per_turn=3 beat_budget=60 option_words=19 sketch_words=25\n\n## turn 1\n'
+    printf 'writer: continuing\n**Digest.** 6 entities, one thin pillar.\n**Target.** `bridge-tolls` scores highest.\n**Question.** who pays when the bridge is the one that is wrong?\n'
+    printf -- '- steady — the mason who signed it\n- sharp — nobody, and the ledger edits itself\n- strange — the bridge, in kind\n**Stop.** waiting.\n\n## turn 2\n'
+    printf 'writer: up to you, whichever is less work\n**Digest.** same six.\n**Target.** `daily-life` is thin.\n**Question.** what do people eat on a day the tollhouse takes a name?\n**Stop.** waiting.\n'; } > "$ypc"
+  python3 "$B/tests/invariants.py" "$ypa" >/dev/null 2>&1; ra=$?
+  python3 "$B/tests/invariants.py" "$ypb" >/dev/null 2>&1; rb=$?
+  python3 "$B/tests/invariants.py" "$ypc" >/dev/null 2>&1; rcc=$?
+  rm -f "$ypa" "$ypb" "$ypc"
+  if [ $((ra & 4)) = 4 ]; then
+    ok "a declined premise asked straight back is a breach (rc=$ra, bit4 set)"
+  else
+    no "'you pick' answered with the premise question again read as clean (rc=$ra) - the open item is still unenforced"
+  fi
+  if [ $((rb & 4)) = 0 ]; then
+    ok "three premises dealt off different assumptions satisfies it (rc=$rb)"
+  else
+    no "the compliant deal is flagged (rc=$rb) - the check invented a rule the guidance does not ask for"
+  fi
+  if [ $((rcc & 4)) = 0 ]; then
+    ok "deferring an option choice is not a premise declination (rc=$rcc) - no false red on the usual trio"
+  else
+    no "the check fires on an ordinary 'up to you' about options (rc=$rcc) - it cannot tell the two apart"
+  fi
   # The other side, which is the defect that motivated the rule: the same six bullets with the citation
   # at the end - what real close runs wrote before G4 - must NOT read as an appendix. If both shapes are
   # recognised, the assertion above is measuring nothing.

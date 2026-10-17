@@ -67,6 +67,13 @@ CLOSING   = re.compile(r'(?i)\*\*(session \d+ closed|what we decided|closing)|(?
 NEXTLINE  = re.compile(r'(?i)\*\*next ?(thread)?[:：]|next thread')
 QUOTED    = re.compile(r'"[^"]*"|`[^`]*`')
 BEAT      = re.compile(r'^\s*\*\*(write back|reflect|digest|target|question|stop)\b', re.I)
+# R-27: the "you pick" branch. A declination in the writer's line, a premise-shaped question in the
+# assistant's, and nothing offered - that is the skill asking for the premise a second time.
+DECLINE   = re.compile(r"(?i)\b(you pick|your call|you decide|up to you|surprise me|"
+                       r"whatever you like|no idea what|can'?t think of anything)\b")
+PREMISE_Q = re.compile(r'(?i)\bpremise\b|what kind of world|sounds fun|pitch me|'
+                       r'one[- ]line (world|idea|premise)')
+PREM_DEAL = re.compile(r'^\s*[-*] ?\*{0,2}(power|cost|belief)\b')
 
 # words_per_turn alone told me a turn ran 211 words and left me guessing where: the total is easy to
 # keep by starving one beat and inflating another, so a compliant-looking turn can still be a monologue.
@@ -208,15 +215,17 @@ def main():
         # Same rule wordcount applies, so the two gates cannot disagree about one turn: an appendix
         # bullet needs the shape AND a close that is actually in evidence - this turn is the closing
         # turn, or the block announced it. Shape alone laundered reaction mode out of the cap.
+        is_close = hm.turn_is_close(lines, i == len(ts) - 1, len(ts))
         recap = [l for k, l in enumerate(body)
                  if BULLET.match(l) and not OPT.match(l)
                  and (bool(wc.CLOSE.match(l))
-                      or (RECAP.match(l) and hm.close_context(body, k, i == len(ts) - 1, len(ts))))]
+                      or (RECAP.match(l) and hm.close_context(body, k, i == len(ts) - 1, len(ts),
+                                                              is_close=is_close)))]
         memo_l, body_rest = wc.memo_split(body)          # the memo is an appendix, not a monologue
         opts = [l for l in body_rest if OPT.match(l)]
         # A sketch block is reaction mode's appendix: exempt from words_per_turn, bounded per line and
         # in count by its own tunables. Detected on body_rest so memo lines cannot join the run.
-        sk_idx = hm.sketch_lines(body_rest, i == len(ts) - 1, len(ts))
+        sk_idx = hm.sketch_lines(body_rest, i == len(ts) - 1, len(ts), is_close=is_close)
         sketch = [l for k, l in enumerate(body_rest) if k in sk_idx]
         memo_w = [wc.wc_words(l) for l in memo_l if wc.MEMO_ITEM.match(l)]
         memo_w = memo_w or [sum(wc.wc_words(l) for l in memo_l)]
@@ -296,6 +305,15 @@ def main():
         # the close turn owes a recap and the next thread, not another question - §3.1. Scoring it for
         # "0 questions" failed a turn for doing the thing the contract asks for at the end of a session.
         if nq != 1 and not (closing and len(recap) >= 3): bad.append(f'{nq} questions'); rc |= 4
+        # Silent when anything was offered (three premises, or the usual option trio), so a legitimate
+        # deflection is not a breach: the defect is asking the premise back with nothing to burn.
+        decl = bool(DECLINE.search(' '.join(l for k, l in enumerate(lines)
+                                           if hm.is_writer_echo(lines, k))))
+        if decl and not opts and not [l for l in body if PREM_DEAL.match(l)] \
+                and PREMISE_Q.search(' '.join(body)):
+            bad.append('"you pick" answered with the premise question again, 0 premises dealt')
+            print(f'   turn {i+1}: declined premise asked back - deal three (power, cost, belief)')
+            rc |= 4
         print(f'   turn {i+1}: {w:4d}w | {nq}q | target {hit[0]:<20} | provoked {pvx:<12}'
               f'{"" if logged else " | " + src[-1]}{" | " + ", ".join(bad) if bad else ""}')
     rd = reads_per_turn(sess, len(ts)) if sess else None

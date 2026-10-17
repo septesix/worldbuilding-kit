@@ -24,24 +24,24 @@
   },
   "multi/skill": {
    "dist": {
-    "n": 121,
-    "min": 7,
-    "med": 172,
-    "p90": 217,
-    "max": 345
+    "n": 119,
+    "min": 16,
+    "med": 161,
+    "p90": 210,
+    "max": 339
    },
-   "over": 71,
+   "over": 52,
    "cap_seen": 170
   },
   "multi/control": {
    "dist": {
     "n": 17,
-    "min": 130,
-    "med": 208,
-    "p90": 250,
-    "max": 358
+    "min": 124,
+    "med": 199,
+    "p90": 241,
+    "max": 336
    },
-   "over": 12,
+   "over": 11,
    "cap_seen": 170
   }
  },
@@ -104,9 +104,9 @@
   },
   "multi/skill": {
    "dist": {
-    "n": 13,
-    "min": 11,
-    "med": 14,
+    "n": 12,
+    "min": 12,
+    "med": 15,
     "p90": 18,
     "max": 18
    },
@@ -129,7 +129,7 @@
   "texture": {
    "single": {
     "runs_with_it": 0,
-    "runs": 45
+    "runs": 46
    },
    "multi": {
     "runs_with_it": 10,
@@ -139,7 +139,7 @@
   "same_pillar": {
    "single": {
     "runs_with_it": 0,
-    "runs": 45
+    "runs": 46
    },
    "multi": {
     "runs_with_it": 12,
@@ -149,7 +149,7 @@
   "ledger_gap": {
    "single": {
     "runs_with_it": 0,
-    "runs": 45
+    "runs": 46
    },
    "multi": {
     "runs_with_it": 3,
@@ -159,7 +159,7 @@
   "canon_loss": {
    "single": {
     "runs_with_it": 0,
-    "runs": 45
+    "runs": 46
    },
    "multi": {
     "runs_with_it": 0,
@@ -169,7 +169,7 @@
   "beats_over": {
    "single": {
     "runs_with_it": 0,
-    "runs": 45
+    "runs": 46
    },
    "multi": {
     "runs_with_it": 15,
@@ -179,7 +179,7 @@
   "options_over": {
    "single": {
     "runs_with_it": 0,
-    "runs": 45
+    "runs": 46
    },
    "multi": {
     "runs_with_it": 3,
@@ -187,10 +187,10 @@
    }
   }
  },
- "_files": 64,
+ "_files": 65,
  "_keys": 21,
  "_excluded": {
-  "empty_turns": 0
+  "empty_turns": 2
  },
  "_memo": {
   "single/skill": {

@@ -67,15 +67,23 @@ def is_writer_echo(lines, i):
     Both graders used to skip ANY line starting `writer:`, which is a free-words channel - a line of
     assistant prose can opt out of the cap by beginning with that token. In the corpus 140 of 140
     real `writer:` lines sit in the echo position, so narrowing it costs no measurement.
+
+    Narrowing it once silently widened it again: turns_of splits on `\\n## turn \\d+`, leaving the bare
+    digits as the block's first line, so no `^## turn` header is ever visible above the echo and every
+    prompt line in a real multi-turn artifact counted as prose - about 10 words a turn. The guard for
+    this rule stayed green throughout, because its fixture is a `## transcript` file that parses through
+    the other branch. That is the archive-versus-fixture mistake, caught by the corpus lane and not by me.
     """
     if not _WRITER.match(lines[i].strip()):
         return False
+    if i == 0:
+        return True
     for j in range(i - 1, -1, -1):
         s = lines[j].strip()
-        if not s:
-            continue
+        if not s or re.fullmatch(r'\d+', s):
+            continue                      # blank, or the digits `## turn \d+` left behind by the split
         return bool(_TURN_HEAD.match(s))
-    return False
+    return True                           # nothing above but residue: this is the block's first line
 
 
 def in_close_region(lines, i):
@@ -104,13 +112,15 @@ _SKETCH_BULLET = re.compile(r'^\s*[-*] +(`[\w-]+`)')
 _OPTIONISH = re.compile(r'^\s*[-*]?\s*\d+[.)]\s')
 
 
-def sketch_lines(lines, is_last=False, n_turns=0):
+def sketch_lines(lines, is_last=False, n_turns=0, is_close=None):
     """Indices of the bullets that form a sketch block in this turn block."""
+    if is_close is None:
+        is_close = turn_is_close(lines, is_last, n_turns)
     out, run = set(), []
     for i, l in enumerate(lines):
         keep = (_SKETCH_BULLET.match(l) and not _OPTIONISH.match(l)
                 and not is_writer_echo(lines, i)
-                and not close_context(lines, i, is_last, n_turns))
+                and not close_context(lines, i, is_last, n_turns, is_close=is_close))
         if keep:
             run.append(i)
         else:
@@ -122,7 +132,23 @@ def sketch_lines(lines, is_last=False, n_turns=0):
     return out
 
 
-def close_context(lines, i, is_last=False, n_turns=0):
+def turn_is_close(lines, is_last=False, n_turns=0):
+    """Whether this whole turn is a session close, judged from the RAW block, writer echo included.
+
+    Graders call the shape helpers with the echo already stripped out of `body`, so a cue that lives in
+    the writer's own line ("that's all I have for today, wrap it up") is invisible there. Asking the
+    question once, on the raw lines, keeps one definition of "close" instead of two that disagree - which
+    is how a compliant 5-turn close came to be read as a sketch overrun.
+    """
+    if any(_CLOSE_CUE.match(l.strip()) for l in lines):
+        return True
+    if is_last:
+        joined = chr(10).join(lines)
+        return bool(_CLOSE_CUE.search(joined) or _WRAP_CUE.search(joined) or n_turns >= SESSION_TURNS)
+    return False
+
+
+def close_context(lines, i, is_last=False, n_turns=0, is_close=None):
     """Is line i inside a session close? Three ways: the turn announced it, the writer asked for the
     wrap-up on the final turn, or the run reached a session's worth of turns and this is the last one.
     Shape alone is not one of them - reaction mode writes the same bullets mid-session.
@@ -131,8 +157,9 @@ def close_context(lines, i, is_last=False, n_turns=0):
         return True
     if not is_last:
         return False
-    joined = chr(10).join(lines)
-    return bool(_CLOSE_CUE.search(joined) or _WRAP_CUE.search(joined) or n_turns >= SESSION_TURNS)
+    if is_close is None:
+        is_close = turn_is_close(lines, is_last, n_turns)
+    return is_close
 
 
 def is_machine_line(line):

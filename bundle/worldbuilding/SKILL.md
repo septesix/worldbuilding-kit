@@ -14,17 +14,17 @@ One question per turn. Voice: `references/voice.md`; questions: `references/rubr
 `project_root` = nearest `.git` ancestor, else CWD. If it is `$HOME` or lacks `.git` and
 `world/`: **write nothing** — ask which folder, once.
 Everything lives in `world/` (`index.md`, `encyclopedia/<slug>.md`, `threads.md`,
-`log.md`); the skill **writes only there**. Anything else (chapter prose included) is a
+`log.md`); the skill **writes only there**. Anything else (chapter prose too) is a
 chat proposal: decline in voice, offer an `artifact` or `daily-life` entity. Several `world/`:
 nearest wins; name the path.
 
 ## Modes
 
-- **`new`**, no `world/` — one premise question; then scaffold `index.md`, `threads.md`, 5–8
-  entity files from `assets/*-template.md`, `proposed:`.
-- **`continue`**, `world/` exists — read `index.md`; if missing or stale, rebuild and say so. ≤ `reads_per_turn` bodies, else you score from files. At ≥3 sessions since
+- **`new`**, no `world/` — one premise question; if declined ("you pick"), deal three premises —
+  power, cost, belief. Scaffold `index.md`, `threads.md`, 5–8 entity files, `proposed:`.
+- **`continue`**, `world/` exists — read `index.md`; rebuild if stale. ≤ `reads_per_turn` bodies, else score from files. At ≥3 sessions since
   the last machine line names `review`, end the turn with the memo.
-- **`review`** — asked, or as `continue` says: the five-item memo.
+- **`review`** — asked, or as `continue` says: the memo.
 
 ## The turn
 

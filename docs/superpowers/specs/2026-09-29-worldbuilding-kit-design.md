@@ -88,7 +88,7 @@ Modes, all handled by the same loop:
 
 | Mode | Entered when | Behavior |
 |---|---|---|
-| `new` | no `world/` | one question: a paragraph of premise (or "you pick" → deal three premises off different genre assumptions). Scaffold `world/`, seed 5–8 entities, **all tagged `proposed:`** |
+| `new` | no `world/` | one question: a paragraph of premise. If it comes back "you pick", deal three premises, each resting on a different genre assumption - `power`, `cost`, `belief` - and ask which, or none (R-27; `invariants` flags a declination that got the same question back). Scaffold `world/`, seed 5–8 entities, **all tagged `proposed:`** |
 | `continue` | `world/index.md` exists | read index only; pick the top gap; open with the digest |
 | `review` | requested, or offered when `log.md` shows ≥3 sessions since the last one | consistency memo: contradictions, orphan entities, pillars with no `texture` entries, unvetted `proposed:` canon, engagement-type treadmill |
 
@@ -650,6 +650,38 @@ one block, stated as provisional rather than dressed up as a distribution. Cost 
 line passes that would have been caught as prose, and six of them is 150 words of appendix in one turn —
 bounded by the count rule, and by `beat_budget` for any line that carries a beat label.
 
+**R-27 (2026-10-16, implement the "you pick" branch)** - §2.2 promised a branch that existed in no guidance
+file, so a writer who declined the premise got the premise question again. Implemented as a shape the
+instrument can see: three premises, one per **genre assumption** rather than one per adjective —
+`power` (who decides, and what they cannot), `cost` (what the world charges for being itself), `belief`
+(what everyone assumes that could be wrong) — two sentences each, then one question: which, or none. They
+are **prose, not an appendix**: they count against `words_per_turn`, which is why a premise is two
+sentences. Deliberately not exempted — R-25's lesson is that an exemption needs a measured distribution
+behind it, and this one has none. Stated in `SKILL.md` (the mode bullet), `references/rubric.md` (the
+mechanics and the fake-choice warning), and `tests/prompts/you-pick.txt`, and wired into `run.sh` so the
+certification set exercises it. `invariants` flags bit 4 when a turn's writer line declines, nothing is
+offered, and the assistant's text asks for a premise — silent when premises or the usual option trio were
+offered, so a legitimate deflection is not a breach.
+
+**R-27b (same commit, instrument correction)** — implementing that flag required reading the writer's own
+line, which exposed that `is_writer_echo` **never fired on a real multi-turn artifact**: `turns_of` splits
+on the turn header including its digits, so the digits are left behind as the block's first line and no
+`^## turn` header is ever visible above the echo. Since R-24's positional rewrite, the harness's scripted
+prompt text had been counted as assistant prose — about 10 words a turn, and 58% of multi/skill turns read
+"over cap" where the true figure is **43%** (median 161, n=119; single-turn runs parse through the other
+branch and were always right). 13 recorded verdicts moved, all downward. Two more blind spots in the same
+family, found while proving it: `recap` and `sketch_lines` were handed the echo-stripped `body`, so a close
+announced by the writer's own "that's all I have for today" was invisible to them, and a compliant 5-turn
+close read as a sketch overrun. `harness_markers.turn_is_close()` now answers that question once, from the
+raw block, and both helpers take the answer as an argument — one definition of "close", not two that
+disagree. A blanket "last turn means recap" exemption was tried first and rejected: it makes close-turn
+bullets unbounded, which is a bad-run-passes hole, not a fix.
+
+**The method lesson, recorded because it was made twice in one day**: the guard for the echo rule was green
+the whole time, because its fixture was a `## transcript` file that parses through the branch where the
+header survives. A synthetic fixture tests the branch you wrote; the corpus lane tests the branch the
+harness produces. When a rule is about *where a line came from*, at least one test must be archive-shaped.
+
 **R-26 (2026-10-16, decision: 19 words is fine)** - `option_words: 18 -> 19`, and the reading is the
 per-option one. The two measurements that disagreed were the length column (longest option in a turn) and
 the flag (any option, anywhere); the column said max 18 and 0% over while 3 of 19 runs carried
@@ -664,18 +696,16 @@ still bounds the turn the options live in.
 Verified against the shipped bundle on 2026-10-15; these are spec requirements with no implementation and
 no decision, listed so the next reader does not have to rediscover them:
 
-1. §2.2 `new` mode's **"you pick" branch** - deal three premises off different genre assumptions - is
-   absent from all guidance. A writer who declines to choose gets the same premise question.
-2. §3.2 **`sarcasm: on`** is declared in the template and read by nothing; `voice.md`'s sarcasm rule is
+1. §3.2 **`sarcasm: on`** is declared in the template and read by nothing; `voice.md`'s sarcasm rule is
    unconditional, so turning it off changes no documented behaviour. The only tunable with no reader.
    As of R-24 the provenance table says so out loud ("not measured, bound to nothing") rather than
    leaving the row absent, which is what the new `provsweep` guard would have flagged.
-3. §7 **slug collision** (append the kind: `lady-severin-person`) is stated nowhere; the convention exists
+2. §7 **slug collision** (append the kind: `lady-severin-person`) is stated nowhere; the convention exists
    only because the fixture's files happen to be named that way, so it is a modelling cue, not a rule.
-4. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from
+3. §2.1's **known limitation** - install at CWD when CWD ≠ project_root, say so, recommend running pi from
    the root next time - is not in the kit; nor is §2.1's warning that project skills are reviewed by pi's
    trust prompt (the kit only says they "now load from here"). §8's "ask if ambiguous at depth" for several
    `world/` trees is likewise unimplemented: nearest wins and the path is named, but nothing asks.
-5. §9's **voice micro-test** (5 fresh-context samples of one digest turn, variance read by hand) was never
+4. §9's **voice micro-test** (5 fresh-context samples of one digest turn, variance read by hand) was never
    run - plan Task 9's `evidence/voice-microtest.md` does not exist. The question it was for got answered
    by full scenario runs instead, at roughly twelve times the cost.

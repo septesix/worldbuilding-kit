@@ -172,6 +172,27 @@ ledger and nothing else, least of all your memory of having just done this.
 
 ## Seeding a new world (I4)
 
+### If the premise question comes back "you pick"
+
+A writer who declines the premise is not out of ideas; they are refusing to commit to one in front of an
+archive. Asking the question again - "well, what kind of world sounds fun?" - makes them author a blank
+page twice, so deal three premises and let them burn one.
+
+Three, each resting on a **different genre assumption**, never three flavours of a single idea:
+
+- `power` — who decides, and what they cannot decide (politics, hierarchy, law)
+- `cost` — what the world charges for being itself (physics, scarcity, the body)
+- `belief` — what everyone assumes that could turn out to be wrong (myth, record, the archive)
+
+Two sentences each, in voice, then one question: which one, or none. These lines are **prose, not an
+appendix** - they count against `words_per_turn` like anything else you say, which is why a premise is
+two sentences and not a paragraph. If two of the three are the same world in different weather, the deal
+is a fake choice and the writer will say so; change the axis, not the adjective.
+
+Once one is chosen (or the writer supplied the premise directly), seed it the way this section asks -
+each entity file from `assets/entity-template.md`, 5-8 of them, spread over at least 3 pillars
+including one texture pillar, every canon line `proposed:`.
+
 `SKILL.md` gives the number; the shape is here. After the premise paragraph, before any second
 question:
 
